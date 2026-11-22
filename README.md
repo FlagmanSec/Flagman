@@ -39,7 +39,7 @@ Runtimes were measured on a 2-core machine. `02` must run before `03` and `05`; 
 
 ## Protocol
 
-- Inputs: 42 features (39 numeric, 3 categorical). `id` and `label` are excluded.
+- The inputs: 42 features (39 numeric, 3 categorical). `id` and `label` are excluded.
 - Exact duplicate training records (same features and class) are removed; the official test set is used unchanged.
 - Preprocessing is fitted on training data only: one-hot encoding for categorical features (categories with fewer than 10 records grouped); log(1 + x) and standardisation for logistic regression, k-NN and Naive Bayes.
 - Class imbalance: balanced class or sample weights for every model except k-NN and the majority-class baseline.
