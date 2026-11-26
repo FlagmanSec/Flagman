@@ -1,0 +1,67 @@
+# Checks for the Flagman product (the product/ folder only).
+# The CS395 research files are not built or tested here.
+name: Product CI
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "product/**"
+      - ".github/workflows/product-ci.yml"
+  pull_request:
+    paths:
+      - "product/**"
+      - ".github/workflows/product-ci.yml"
+
+permissions:
+  contents: read
+
+# A new push to the same branch cancels the run that is still going.
+concurrency:
+  group: product-ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  rust:
+    name: Sensor (Rust)
+    runs-on: ubuntu-24.04
+    defaults:
+      run:
+        working-directory: product/core
+    steps:
+      - uses: actions/checkout@v5
+      - name: Install libpcap (needed to build the capture crate)
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends libpcap-dev
+      - name: Install the Rust version pinned in rust-toolchain.toml
+        run: rustup toolchain install
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: product/core
+      - name: Formatting
+        run: cargo fmt --check
+      - name: Lints (any warning fails)
+        run: cargo clippy --all-targets --locked -- -D warnings
+      - name: Tests
+        run: cargo test --locked
+
+  ui:
+    name: Dashboard (Svelte)
+    runs-on: ubuntu-24.04
+    defaults:
+      run:
+        working-directory: product/ui
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: product/ui/package-lock.json
+      - name: Install exact dependency versions
+        run: npm ci
+      - name: Type checks (any warning fails)
+        run: npm run check
+      - name: Unit tests
+        run: npm test
+      - name: Build
+        run: npm run build

@@ -1,0 +1,55 @@
+# systemd unit for the Flagman sensor.
+# Installed by install.sh as /etc/systemd/system/flagman.service.
+#
+# The daemon runs as the unprivileged "flagman" user. It gets exactly two
+# capabilities, both needed to capture packets, and nothing else.
+
+[Unit]
+Description=Flagman network intrusion detection sensor
+Documentation=https://github.com/FlagmanSec/Flagman/tree/main/product
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+ExecStart=/usr/local/bin/flagmand run --config /etc/flagman/flagman.toml
+Restart=on-failure
+RestartSec=5s
+
+User=flagman
+Group=flagman
+# CAP_NET_RAW opens the capture socket; CAP_NET_ADMIN turns on promiscuous mode.
+AmbientCapabilities=CAP_NET_RAW CAP_NET_ADMIN
+CapabilityBoundingSet=CAP_NET_RAW CAP_NET_ADMIN
+NoNewPrivileges=yes
+
+# /var/lib/flagman holds the database and the dashboard token.
+StateDirectory=flagman
+StateDirectoryMode=0750
+UMask=0077
+
+# Hardening: a read-only system, no access to home folders or devices.
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+PrivateDevices=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectKernelLogs=yes
+ProtectControlGroups=yes
+ProtectClock=yes
+ProtectHostname=yes
+RestrictNamespaces=yes
+RestrictRealtime=yes
+RestrictSUIDSGID=yes
+LockPersonality=yes
+MemoryDenyWriteExecute=yes
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6 AF_PACKET AF_NETLINK
+SystemCallArchitectures=native
+SystemCallFilter=@system-service
+
+# A safety net: Flagman's own limits keep it far below this.
+MemoryMax=512M
+
+[Install]
+WantedBy=multi-user.target

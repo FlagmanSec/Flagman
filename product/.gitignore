@@ -1,0 +1,8 @@
+# Build output
+core/target/
+ui/node_modules/
+ui/dist/
+# Databases written by replays and local runs
+*.db
+*.db-wal
+*.db-shm

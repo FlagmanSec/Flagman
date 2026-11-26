@@ -1,0 +1,16 @@
+[package]
+name = "flagman-capture"
+description = "Packet sources: live capture from an interface (libpcap) or a capture file."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+publish.workspace = true
+
+[dependencies]
+flagman-core.workspace = true
+pcap.workspace = true
+rustix.workspace = true
+thiserror.workspace = true
+
+[dev-dependencies]
+tempfile.workspace = true

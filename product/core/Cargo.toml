@@ -1,0 +1,49 @@
+# Flagman core: one Cargo workspace, one crate per responsibility.
+# Read docs/reading-order.md (in product/docs) before diving into the code.
+[workspace]
+resolver = "3"
+members = ["crates/*"]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.97"
+publish = false
+
+[workspace.dependencies]
+# Internal crates
+flagman-core = { path = "crates/flagman-core" }
+flagman-capture = { path = "crates/flagman-capture" }
+flagman-store = { path = "crates/flagman-store" }
+flagman-suricata = { path = "crates/flagman-suricata" }
+flagman-api = { path = "crates/flagman-api" }
+
+# Packet parsing (pure Rust, no unsafe code in our parsing path)
+etherparse = "0.21.1"
+# Capture through libpcap (needs libpcap-dev to build)
+pcap = "2.5.0"
+# Safe wrapper for poll(), to wait for packets with a timeout that always fires
+rustix = { version = "1.1.6", features = ["event"] }
+# Storage: SQLite compiled from source, so no system SQLite is needed
+rusqlite = { version = "0.43.0", features = ["bundled"] }
+# Web API
+axum = "0.8.9"
+tokio = { version = "1.54.1", features = ["rt-multi-thread", "macros", "net", "sync", "time"] }
+tower-http = { version = "0.7.1", features = ["fs"] }
+# Serialisation and configuration
+serde = { version = "1.0.229", features = ["derive"] }
+serde_json = "1.0.154"
+toml = "1.2.3"
+chrono = { version = "0.4.45", default-features = false, features = ["std"] }
+# Command line, errors, logging, signals, randomness
+clap = { version = "4.6.10", features = ["derive"] }
+thiserror = "2.0.21"
+anyhow = "1.0.105"
+tracing = "0.1.44"
+tracing-subscriber = { version = "0.3.23", features = ["env-filter"] }
+ctrlc = { version = "3.5.3", features = ["termination"] }
+getrandom = "0.4.3"
+# Test-only helpers
+tempfile = "3.27.0"
+tower = { version = "0.5.3", features = ["util"] }
+http-body-util = "0.1.5"
