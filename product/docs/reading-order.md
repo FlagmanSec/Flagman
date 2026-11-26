@@ -27,8 +27,9 @@ network, no disk, no clock. That is why it is easy to test.
 | 7 | `incident/engine.rs` | alerts become incidents; how severity is raised |
 | 8 | `engine.rs` | the order in which all of the above runs for each packet |
 
-Then read the tests next to them (`detectors_tests.rs`, `table_tests.rs`, and
-the `mod tests` at the bottom of each file).
+Then read the tests next to them (`detectors_tests.rs`, `login_tests.rs`,
+`table_tests.rs`, `engine_flood_tests.rs`, and the `mod tests` at the bottom
+of each file).
 
 ## 3. The program around it (45 minutes)
 

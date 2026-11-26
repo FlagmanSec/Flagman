@@ -112,6 +112,11 @@ pub enum AlertDetails {
     BruteForce {
         service_port: u16,
         window_secs: i64,
+        /// True when the target is outside the home network: one of your
+        /// devices is the one guessing passwords. Older stored alerts lack
+        /// this field and read as false.
+        #[serde(default)]
+        outbound: bool,
     },
     Signature {
         signature_id: u64,

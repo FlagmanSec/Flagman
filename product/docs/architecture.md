@@ -66,7 +66,8 @@ and makes replay behave exactly like live capture.
   Scans and sweeps look at flows when they *start* (a connection request is
   enough); login attempts look at flows when they *end*, because only the
   end shows whether the connection was refused, closed quickly, or became a
-  working session. Each detector follows at most 50,000 keys; when full, it
+  working session; a login service inside the home needs 10 such
+  connections, one on the internet 30 (ADR 0011). Each detector follows at most 50,000 keys; when full, it
   forgets the least active tenth (fewest distinct values, quiet for
   longest), so a real scanner stays while fake one-packet sources go.
 - **Incidents** (`incident/engine.rs`): alerts about the same host join

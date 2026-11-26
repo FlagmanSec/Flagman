@@ -105,7 +105,7 @@ export interface AttackRef {
 export type AlertDetails =
   | { type: 'port_scan'; protocol: Protocol; ports_sample: number[]; window_secs: number }
   | { type: 'host_sweep'; method: 'arp' | 'icmp' | 'tcp' | 'udp'; hosts_sample: string[]; window_secs: number }
-  | { type: 'brute_force'; service_port: number; window_secs: number }
+  | { type: 'brute_force'; service_port: number; window_secs: number; outbound?: boolean }
   | { type: 'signature'; signature_id: number; signature: string; category: string; engine: string };
 
 export interface AlertRow {

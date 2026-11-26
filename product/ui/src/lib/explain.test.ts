@@ -61,4 +61,22 @@ describe('advice', () => {
     expect(tips.map((tip) => tip.kind)).toEqual(['host_sweep', 'port_scan']);
     expect(tips[0]?.check).toContain('192.168.77.66');
   });
+
+  it('points login alerts to an exception for that login only', () => {
+    const [tip] = advice([brute], tr);
+    expect(tip?.check).toContain('ignore_logins = [{ source = "192.168.77.66", target = "192.168.77.10", port = 22 }]');
+    expect(tip?.check).not.toContain('ignore_sources');
+  });
+
+  it('gives login attempts on an internet server their own advice', () => {
+    const outbound: AlertRow = {
+      ...alert(6, 8_000, { type: 'brute_force', service_port: 22, window_secs: 60, outbound: true }, 30),
+      dst_ip: '203.0.113.5',
+    };
+    const tips = advice([brute, outbound], tr);
+    expect(tips).toHaveLength(2);
+    expect(tips[1]?.why).toContain('one of your own devices');
+    expect(tips[1]?.check).toContain('Find out what runs on 192.168.77.66');
+    expect(tips[1]?.check).toContain('target = "203.0.113.5", port = 22');
+  });
 });

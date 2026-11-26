@@ -157,6 +157,7 @@ mod tests {
             details: AlertDetails::BruteForce {
                 service_port: 22,
                 window_secs: 60,
+                outbound: false,
             },
             attack: Some(AttackRef {
                 tactic_id: String::new(),

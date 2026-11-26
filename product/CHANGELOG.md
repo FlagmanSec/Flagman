@@ -51,3 +51,25 @@ Phase 1: Linux Pro. Details and checks: [docs/changes/phase-1-linux-pro.md](docs
 - The documents no longer present the normal capture (500 packets) as proof
   that there are no false alarms. The home test gains a week of normal use,
   which will give the real false alarm rate.
+
+### Changed (phase 1 follow-ups)
+
+- Login attempts on servers on the internet are reported again, with their
+  own threshold: 30 failed attempts on one server within 60 s
+  (`outbound_min_attempts`), against 10 inside the home. A device of yours
+  that guesses passwords elsewhere may be infected; normal git over SSH
+  stays quiet. The default of `local_targets_only` becomes `false`.
+  **Existing installations keep `local_targets_only = true`** from their
+  `/etc/flagman/flagman.toml` (the installer never overwrites it): set it
+  to `false` to turn the internet watch on.
+  [ADR 0011](docs/adr/0011-watch-logins-to-internet-servers.md).
+- A new `ignore_logins` setting silences one login (source, target, port)
+  for the login rule only. The advice on login alerts, in English, French
+  and Arabic, now points there instead of `ignore_sources`, which hides a
+  device from every detector, scans included.
+- A test now pins a known limit: a flood of new connections that fills the
+  flow table can end a login attempt before the server answers, and that
+  attempt is not counted. With a 1,000-flow table, logins are lost from 320
+  new connections per second; with the default 100,000 flows the same
+  mechanism gives about 31,000. Phase 2 measures it on the router
+  ([phase 2 plan](docs/phase-2-plan.md), 2.6). No detector change.

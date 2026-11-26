@@ -37,8 +37,9 @@ enabled = true
 eve_path = "/var/log/suricata/eve.json"
 
 [detect]
-# Hosts whose behaviour is never reported, for example a router or a
-# monitoring server that scans the network on purpose.
+# Hosts whose behaviour is never reported by any detector, for example a
+# router or a monitoring server that scans the network on purpose. To
+# silence only one login, use ignore_logins under [detect.brute_force].
 ignore_sources = []
 # A finding closes after this many quiet seconds.
 finding_idle_secs = 120
@@ -63,11 +64,21 @@ window_secs = 60
 min_attempts = 10
 # A connection open longer than this is a working session, not an attempt.
 max_attempt_secs = 30
-# Only watch login services inside your network. Set to false to also count
-# connections from your devices to servers on the internet.
-local_targets_only = true
+# The same, for servers on the internet: one of your devices guessing
+# passwords there. Higher, because your devices log in to internet servers
+# all the time (git over SSH, backups).
+outbound_min_attempts = 30
+# Set to true to watch only login services inside your network (then
+# outbound_min_attempts is not used).
+local_targets_only = false
 # FTP, SSH, Telnet, POP3, IMAP, SMB, MSSQL, MySQL, RDP, PostgreSQL, VNC
 ports = [21, 22, 23, 110, 143, 445, 1433, 3306, 3389, 5432, 5900]
+# Logins that are never reported, for example your own script that logs in
+# to a machine at home again and again. Only this source, target and port
+# are silenced; the source stays watched for everything else.
+# ignore_logins = [
+#   { source = "192.168.1.20", target = "192.168.1.10", port = 22 },
+# ]
 
 [incidents]
 # Alerts from the same host more than this many minutes apart start a new

@@ -201,6 +201,10 @@ impl Config {
                 "detect.brute_force.min_attempts",
                 detect.brute_force.min_attempts,
             ),
+            (
+                "detect.brute_force.outbound_min_attempts",
+                detect.brute_force.outbound_min_attempts,
+            ),
         ];
         for (name, value) in at_least_two {
             if value < 2 {
@@ -257,6 +261,28 @@ mod tests {
     }
 
     #[test]
+    fn a_login_exception_names_a_source_a_target_and_a_port() {
+        let config = Config::parse(
+            r#"
+            [detect.brute_force]
+            ignore_logins = [
+              { source = "192.168.1.20", target = "192.168.1.10", port = 22 },
+            ]
+            "#,
+        )
+        .unwrap();
+        let exception = config.detect.brute_force.ignore_logins[0];
+        assert_eq!(exception.source.to_string(), "192.168.1.20");
+        assert_eq!(exception.target.to_string(), "192.168.1.10");
+        assert_eq!(exception.port, 22);
+        let missing_port = r#"
+            [detect.brute_force]
+            ignore_logins = [{ source = "192.168.1.20", target = "192.168.1.10" }]
+            "#;
+        assert!(Config::parse(missing_port).is_err());
+    }
+
+    #[test]
     fn the_example_file_parses_and_shows_the_real_defaults() {
         let path = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../../deploy/linux/flagman.toml");
         let example = Config::load(Some(&path)).unwrap();
@@ -276,6 +302,9 @@ mod tests {
         assert!(format!("{typo:#}").contains("min_tcp_port"));
         let bad = Config::parse("[detect.host_sweep]\nmin_hosts = 1").unwrap_err();
         assert!(bad.to_string().contains("min_hosts"));
+        let outbound =
+            Config::parse("[detect.brute_force]\noutbound_min_attempts = 0").unwrap_err();
+        assert!(outbound.to_string().contains("outbound_min_attempts"));
         assert!(Config::parse("[capture]\nbuffer_mib = 0").is_err());
     }
 }

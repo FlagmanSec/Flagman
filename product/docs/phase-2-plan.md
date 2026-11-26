@@ -58,7 +58,8 @@ the home data can be prepared during the test week.
 - **Why:** today "inside your network" means a private address (10/8,
   172.16/12, 192.168/16, fc00::/7, link-local). A home that uses public
   IPv6 addresses is not recognised, which affects the network sweep
-  detector, the login detector (`local_targets_only`) and where Suricata
+  detector, the login detector (which threshold a server gets,
+  [ADR 0011](adr/0011-watch-logins-to-internet-servers.md)) and where Suricata
   alerts are filed ([ADR 0010](adr/0010-suricata-alerts-filed-under-the-home-device.md)).
 - **What:** one `home_networks` list in `flagman.toml`, defaulting to the
   private ranges, used by all three. When a Suricata alert carries its own
@@ -112,6 +113,20 @@ cat /etc/openwrt_release
   use with the lab recordings and a generated flood, and add a start-up
   script for OpenWrt's service manager (procd) to replace the systemd
   service.
+- **Also measure, during the flood:** the rate at which login attempts
+  start to be missed. When the table is full, a login connection that is
+  still open can be ended as *evicted*, and an evicted attempt never
+  counts (one that had already closed still does). A flow is pushed out
+  once it has been silent for about 0.9 × table size ÷ flood rate seconds,
+  and a failed SSH attempt in `lab-ssh-logins.pcap` is silent for up to
+  2.9 s while the server delays its answer. The phase 1 follow-up test
+  `flagman-core/src/engine_flood_tests.rs` pins this with a 1,000-flow
+  table: logins are still seen at 310 new connections per second and lost
+  from 320 (`cargo test -p flagman-core flood_rate -- --ignored
+  --nocapture` prints the sweep). With the default 100,000 flows the same
+  formula gives about 31,000 new connections per second; the smaller
+  router table will lower it, so the pull request reports the router's
+  number.
 - **Checked by:** measured numbers written in the pull request; Flagman
   stays within the chosen memory budget during the flood.
 

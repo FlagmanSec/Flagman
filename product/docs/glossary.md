@@ -28,7 +28,8 @@ Sorted by theme, then alphabetically.
 | Word | Meaning |
 |---|---|
 | **Alert** | One suspicious behaviour, with its evidence: "192.168.1.50 tried 1,000 ports of 192.168.1.10". |
-| **Brute force / login attempts** | Trying passwords again and again on a login service (SSH, RDP…). Flagman never sees the password; it sees many connections to the same login port that were refused or closed within seconds, because servers hang up after wrong passwords. |
+| **Brute force / login attempts** | Trying passwords again and again on a login service (SSH, RDP…). Flagman never sees the password; it sees many connections to the same login port that were refused or closed within seconds, because servers hang up after wrong passwords. A server in your network needs 10 such connections in a minute, a server on the internet 30, because your own devices log in to internet servers all the time (git over SSH). |
+| **Exception** | A way to silence something you know is harmless, in `flagman.toml`. `ignore_logins` silences one login (a source, a target and a port) for the login rule only; `ignore_sources` silences a device for every detector, so its scans are hidden too. |
 | **False positive** | An alert about something harmless, such as your own scan. Mark it as such on the incident page. |
 | **Finding** | Inside a detector: a key (for example scanner and target) that crossed its threshold. It becomes an alert, and the alert is updated while the finding grows. |
 | **Flow** | One conversation between two addresses and ports, from its first packet to its last, with packet and byte counts. |

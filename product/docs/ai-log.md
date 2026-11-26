@@ -7,6 +7,7 @@ per working session; newest last.
 |---|---|---|---|
 | 2026-11-26 | Claude Code (Anthropic's AI coding assistant) | All of phase 1 in `product/`: the Rust sensor, the dashboard, the installer and service, the lab capture script and captures, the tests, and these documents | Seraj |
 | 2026-11-26 | Claude Code | The fixes asked for in Seraj's review of phase 1: full tables, the login rule, Suricata filing, "Detector saturated", the OpenSSH lab script and recording, ADRs 0008 to 0010, the phase 2 plan, the Markdown copies of the context documents, and the review context document | Seraj |
+| 2026-11-26 | Claude Code | The three phase 1 follow-ups: login attempts on internet servers with their own threshold (ADR 0011), the `ignore_logins` exception and its advice in three languages, the test that pins the flood limit, and the follow-ups context document | Seraj |
 
 ## How the AI's work was checked
 

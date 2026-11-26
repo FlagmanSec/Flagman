@@ -1,6 +1,7 @@
 # 0009. Judge login attempts by how each connection ended
 
-Status: accepted
+Status: accepted; the part about internet servers and `ignore_sources` is
+changed by [ADR 0011](0011-watch-logins-to-internet-servers.md)
 Date: 2026-11-26
 
 ## Context
@@ -31,7 +32,8 @@ mean one or two seconds.
   (a scanner) never count.
 - By default only services inside the home network are watched
   (`local_targets_only`), so connections from your devices to servers on
-  the internet (GitHub, cloud machines) never count.
+  the internet (GitHub, cloud machines) never count. (Changed by ADR 0011:
+  internet servers are watched again, with a threshold of 30.)
 - To be sure a connection was closed, every finished flow now says why it
   ended (closed, idle, active timeout, evicted, stopped), like the
   `flowEndReason` field of IPFIX, the standard flow export format.
@@ -43,7 +45,8 @@ mean one or two seconds.
 - **Known limit**: a quick successful login looks like a failed one, so ten
   quick logins in a minute to a server inside the home network (scripts,
   git to a home server) still raise an alert. The advice on the alert page
-  says how to silence a known script (`ignore_sources`), and the home test
+  says how to silence a known script (`ignore_sources`; since ADR 0011,
+  `ignore_logins`, which silences that one login only), and the home test
   will tell us whether more is needed.
 - An attempt is counted about 5 seconds after its connection closes (the
   time a closed flow is kept to catch its last packets).

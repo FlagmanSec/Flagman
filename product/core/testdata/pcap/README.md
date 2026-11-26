@@ -90,10 +90,12 @@ step 4.
 **The known limit.** From packet headers alone, a quick successful login
 (step 4) looks like a failed one, so ten git commands in a minute against an
 SSH server **inside** your network would raise an alert. Servers on the
-internet (GitHub, cloud machines) are not watched by default
-(`local_targets_only`), which covers the common case. If it happens at home,
-add the machine that runs the scripts to `ignore_sources`. The home test
-will tell us whether this needs more work.
+internet (GitHub, cloud machines) need 30 attempts a minute
+(`outbound_min_attempts`, see
+[ADR 0011](../../../docs/adr/0011-watch-logins-to-internet-servers.md)),
+which covers the common case. If it happens at home, add that one login
+(source, target, port) to `ignore_logins`: the machine stays watched for
+everything else. The home test will tell us whether this needs more work.
 
 You can check the counts with tcpdump:
 
