@@ -100,3 +100,7 @@ impl Detectors {
 #[cfg(test)]
 #[path = "detectors_tests.rs"]
 mod tests;
+
+#[cfg(test)]
+#[path = "login_tests.rs"]
+mod login_tests;
