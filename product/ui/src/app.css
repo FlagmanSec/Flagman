@@ -1,0 +1,274 @@
+/*
+ * Colours and base styles.
+ *
+ * Every colour is a variable, defined twice: light (default) and dark.
+ * Dark applies when the system asks for it, unless the person picked
+ * "light"; or when the person picked "dark". Chart colours come from a
+ * palette checked for colour-blind readers (see docs/adr/0006).
+ */
+
+:root {
+  color-scheme: light;
+  --page: #f9f9f9;
+  --surface: #ffffff;
+  --surface-hover: #f2f2f2;
+  --ink: #191919;
+  --ink-2: #666666;
+  --grid: #e7e7e7;
+  --axis: #c2c2c2;
+  --border: rgba(11, 11, 11, 0.1);
+  --link: #1757ac;
+  --focus: #257de0;
+
+  /* Categorical slots 1-5 (protocols: TCP, UDP, ICMP, ARP, other) */
+  --series-1: #257de0;
+  --series-2: #f47230;
+  --series-3: #00b894;
+  --series-4: #f2a600;
+  --series-5: #ee7fac;
+  --series-1-wash: rgba(37, 125, 224, 0.1);
+
+  /* Severity uses the status scale, always with an icon and a label */
+  --sev-low: #8a8a8a;
+  --sev-medium: #fbb315;
+  --sev-high: #f18a59;
+  --sev-critical: #dc3c3d;
+  --good: #0aac23;
+  --warning: #fbb315;
+  --critical: #dc3c3d;
+  --good-text: #006c10;
+
+  --radius: 10px;
+  --font: system-ui, -apple-system, 'Segoe UI', 'Noto Sans', 'Noto Sans Arabic', Tahoma, sans-serif;
+  --mono: ui-monospace, 'SFMono-Regular', Menlo, Consolas, monospace;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) {
+    color-scheme: dark;
+    --page: #0b0b0b;
+    --surface: #191919;
+    --surface-hover: #242424;
+    --ink: #efefef;
+    --ink-2: #9c9c9c;
+    --grid: #303030;
+    --axis: #474747;
+    --border: rgba(255, 255, 255, 0.1);
+    --link: #84b9f3;
+    --focus: #519ced;
+    --series-1: #338ced;
+    --series-2: #e76624;
+    --series-3: #00a888;
+    --series-4: #d28e05;
+    --series-5: #e24d8b;
+    --series-1-wash: rgba(51, 140, 237, 0.12);
+    --sev-low: #7f7f7f;
+    --good-text: #53c556;
+  }
+}
+
+:root[data-theme='dark'] {
+  color-scheme: dark;
+  --page: #0b0b0b;
+  --surface: #191919;
+  --surface-hover: #242424;
+  --ink: #efefef;
+  --ink-2: #9c9c9c;
+  --grid: #303030;
+  --axis: #474747;
+  --border: rgba(255, 255, 255, 0.1);
+  --link: #84b9f3;
+  --focus: #519ced;
+  --series-1: #338ced;
+  --series-2: #e76624;
+  --series-3: #00a888;
+  --series-4: #d28e05;
+  --series-5: #e24d8b;
+  --series-1-wash: rgba(51, 140, 237, 0.12);
+  --sev-low: #7f7f7f;
+  --good-text: #53c556;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--page);
+  color: var(--ink);
+  font-family: var(--font);
+  font-size: 15px;
+  line-height: 1.5;
+}
+
+a {
+  color: var(--link);
+  text-decoration: none;
+}
+
+a:hover {
+  text-decoration: underline;
+}
+
+:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
+
+h1,
+h2,
+h3 {
+  margin: 0;
+  line-height: 1.25;
+}
+
+h1 {
+  font-size: 1.5rem;
+  font-weight: 650;
+}
+
+h2 {
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+button,
+select,
+input {
+  font: inherit;
+  color: inherit;
+}
+
+button,
+select,
+input {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 6px 10px;
+  min-height: 36px;
+}
+
+button {
+  cursor: pointer;
+}
+
+button:hover:not(:disabled) {
+  background: var(--surface-hover);
+}
+
+button:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+
+/* Numbers that line up in columns */
+.num {
+  font-variant-numeric: tabular-nums;
+}
+
+.mono {
+  font-family: var(--mono);
+  font-size: 0.92em;
+}
+
+.muted {
+  color: var(--ink-2);
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+/* Tables */
+.table-wrap {
+  overflow-x: auto;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.92rem;
+}
+
+th,
+td {
+  text-align: start;
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--grid);
+  vertical-align: top;
+}
+
+th {
+  color: var(--ink-2);
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+td.num,
+th.num {
+  text-align: end;
+}
+
+/* Times line up like numbers but stay at the start of the cell, like text */
+td.time {
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+tbody tr:hover {
+  background: var(--surface-hover);
+}
+
+/* Cards */
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 16px;
+  min-width: 0;
+}
+
+/* IP addresses and ports stay left-to-right inside Arabic text */
+.ltr {
+  direction: ltr;
+  unicode-bidi: isolate;
+}
+
+/* Arrows such as "←" point the other way when the page reads right to left */
+[dir='rtl'] .flip-rtl {
+  display: inline-block;
+  transform: scaleX(-1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    transition: none !important;
+  }
+}
+
+/* Text inside coloured chart blocks: white, or near-black on yellow (light theme). */
+:root {
+  --on-series: #ffffff;
+  --on-series-4: #0b0b0b;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) {
+    --on-series-4: #ffffff;
+  }
+}
+:root[data-theme='dark'] {
+  --on-series-4: #ffffff;
+}

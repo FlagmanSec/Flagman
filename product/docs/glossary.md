@@ -1,0 +1,74 @@
+# Glossary
+
+Words used in the code, the docs and the dashboard, in plain language.
+Sorted by theme, then alphabetically.
+
+## Networks
+
+| Word | Meaning |
+|---|---|
+| **ARP** | How a device finds the hardware (MAC) address that goes with an IP address on the local network: it shouts "who has 192.168.1.10?" to everyone (a broadcast). |
+| **Broadcast** | A message sent to every device on the local network. Every machine sees it, which is why Flagman sees a network sweep even from one PC. |
+| **Header** | The start of a packet: addresses, ports, flags. Flagman reads headers only. |
+| **ICMP** | Control messages, such as ping. |
+| **Interface** | A network card as Linux names it, such as `enp3s0` (cable) or `wlp2s0` (Wi-Fi). `flagmand interfaces` lists them. |
+| **IP address** | A device's address on the network. Local (private) ones are `10.x.x.x`, `172.16.x.x` to `172.31.x.x`, `192.168.x.x`, `169.254.x.x`, and `fc00::/7` or `fe80::/10` in IPv6. |
+| **MAC address** | The hardware address of a network card. |
+| **Packet** | One unit of data on the network: a header, then the contents (payload). |
+| **Payload** | The contents of a packet (a web page, a password…). Flagman never stores it. |
+| **Port** | A number that tells which program on a machine a connection is for: 22 for SSH, 80 for web, 443 for secure web. |
+| **Promiscuous mode** | Makes a network card pass up every frame it receives, not only those addressed to it. On a switched home network this mostly adds broadcasts. |
+| **Service** | A program waiting for connections on a port, such as an SSH server. |
+| **Switch** | The box (often inside the home router) that connects cable devices. It sends each packet only to the port of the device it is for, so one PC does not see the traffic between two others. |
+| **TCP** | Connections with delivery checks (web, SSH, email). A connection starts with a **SYN** ("may I?"), a **SYN-ACK** ("yes"), and an **ACK**. A **RST** means "refused" or "stop". A **FIN** closes politely. |
+| **UDP** | Single messages without a connection (DNS, video calls, mDNS). |
+
+## Detection
+
+| Word | Meaning |
+|---|---|
+| **Alert** | One suspicious behaviour, with its evidence: "192.168.1.50 tried 1,000 ports of 192.168.1.10". |
+| **Brute force / login attempts** | Trying passwords again and again on a login service (SSH, RDP…). Flagman sees it as many new connections to the same login port. |
+| **False positive** | An alert about something harmless, such as your own scan. Mark it as such on the incident page. |
+| **Finding** | Inside a detector: a key (for example scanner and target) that crossed its threshold. It becomes an alert, and the alert is updated while the finding grows. |
+| **Flow** | One conversation between two addresses and ports, from its first packet to its last, with packet and byte counts. |
+| **Host sweep / network sweep** | Checking many addresses of the network to find which devices are up (`nmap -sn`). |
+| **IDS** | Intrusion detection system: watches and warns. Flagman is an IDS. An **IPS** also blocks. |
+| **Incident** | Alerts from the same source device, grouped while the gaps stay under 30 minutes. One incident is one story to review. |
+| **MITRE ATT&CK** | A public catalogue of attacker behaviour (<https://attack.mitre.org>). A **tactic** is a goal (Discovery, Credential Access); a **technique** is a way to reach it (T1046 Network Service Discovery). |
+| **Port scan** | Trying many ports of one machine to see which services answer (`nmap 192.168.1.10`). |
+| **Severity** | Low, medium, high or critical. Shown with a shape and a word, never colour alone. |
+| **Signature** | A rule that recognises a known attack pattern. Suricata's free rule set (ET Open) is a large collection of them. |
+| **Sliding window** | "In the last 60 seconds", recomputed as time moves. |
+| **Threshold** | The count that turns normal into suspicious, such as 20 ports in 60 seconds. |
+
+## Tools and formats
+
+| Word | Meaning |
+|---|---|
+| **EVE JSON** | Suricata's log format: one JSON object per line, in `/var/log/suricata/eve.json`. |
+| **libpcap** | The standard Linux library for capturing packets (used by tcpdump and Wireshark). |
+| **nmap** | The best-known network scanner. Flagman's tests use it, in an isolated lab. |
+| **pcap** | A file of captured packets. tcpdump and Wireshark write them; `flagmand replay` reads them. |
+| **Snap length** | How many bytes of each packet are kept: 160 for Flagman. |
+| **Suricata** | A free, open-source IDS with a large rule set (<https://suricata.io>). Flagman reads its alerts. |
+| **tcpdump** | A command-line tool that captures and prints packets. |
+
+## The program
+
+| Word | Meaning |
+|---|---|
+| **Capability** | A single root power given to a program. Flagman needs `CAP_NET_RAW` (capture) and `CAP_NET_ADMIN` (promiscuous mode), and nothing else. |
+| **flagmand** | The Flagman program ("d" for daemon, a program that runs in the background). |
+| **Replay** | Running a pcap file through Flagman as if it were live. Used for tests and demos. |
+| **systemd unit** | The file that tells Linux how to start, stop and restrict a service. |
+| **Token** | A long random secret in the dashboard link. Without it, the API answers "401 Unauthorized". |
+| **WAL** | SQLite's write-ahead log: lets the dashboard read while the sensor writes. |
+
+## Product names
+
+| Word | Meaning |
+|---|---|
+| **Pro** | Flagman on a Linux PC or server (this phase). |
+| **Edge** | Flagman on a router, starting with the OpenWrt One (1 GB of memory). |
+| **RTL** | Right to left, the reading direction of Arabic. The dashboard flips its layout for it. |

@@ -63,9 +63,9 @@ also works, but the token then travels over the network without encryption
 ## Suricata (optional)
 
 Flagman reads Suricata's alerts from `/var/log/suricata/eve.json` when
-Suricata is installed. See `docs/home-test.md` for the setup. If the health
-strip says "permission denied", add the `flagman` user to the group that owns
-that file: `sudo usermod -aG suricata flagman`, then restart Flagman.
+Suricata is installed. See [`docs/home-test.md`](../../docs/home-test.md)
+(step 7) for the setup, and for what to do if the health strip says
+"permission denied".
 
 ## Uninstalling
 
