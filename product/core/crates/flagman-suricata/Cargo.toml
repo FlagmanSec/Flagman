@@ -1,0 +1,16 @@
+[package]
+name = "flagman-suricata"
+description = "Reads Suricata alerts from its EVE JSON log."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+publish.workspace = true
+
+[dependencies]
+flagman-core.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+chrono.workspace = true
+
+[dev-dependencies]
+tempfile.workspace = true
