@@ -9,6 +9,7 @@
 | [threat-model.md](threat-model.md) | you want to know what could attack Flagman itself, and what protects it |
 | [adr/](adr/README.md) | you wonder why something is built the way it is (one decision per file) |
 | [changes/](changes/README.md) | you want a summary of what each phase changed and how it was checked |
+| [context/](context/README.md) | you want the full story of a push in one Word document, without reading code |
 | [ai-log.md](ai-log.md) | you want to know where AI tools were used |
 
 The other READMEs sit next to the code they describe: one per folder.
