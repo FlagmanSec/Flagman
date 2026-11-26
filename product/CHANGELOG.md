@@ -4,6 +4,24 @@ Notable changes to the Flagman product (this `product/` folder). The format
 follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 versions follow [Semantic Versioning](https://semver.org/).
 
+## [Unreleased] - phase 3 toolkit (draft branches)
+
+Built ahead of schedule on the `phase-3/…` branches, to merge when phase 3
+starts. Details: [docs/changes/phase-3-toolkit.md](docs/changes/phase-3-toolkit.md).
+
+### Added
+
+- `flagman-features`: 37 per-flow features for machine learning, computed
+  packet by packet inside the flow table, in constant memory (262 more
+  bytes per flow), with a versioned schema. Addresses, exact ports, clock
+  times and raw TTL are never features; tests prove that changing them,
+  the link layer or the sender's TCP options leaves every feature the same
+  ([ADR 0012](docs/adr/0012-features-computed-inside-the-flow-table.md)).
+- The flow table can keep extra state per flow (`FlowTable<X>`); the
+  sensor's table keeps nothing, so detection is unchanged.
+- Decoded packets carry their data size (read from the headers, so right
+  with a short capture) and their TTL.
+
 ## [0.1.0] - unreleased
 
 Phase 1: Linux Pro. Details and checks: [docs/changes/phase-1-linux-pro.md](docs/changes/phase-1-linux-pro.md).

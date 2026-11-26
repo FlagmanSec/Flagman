@@ -1,6 +1,7 @@
 //! Packet decoding: raw captured bytes in, [`PacketMeta`] out.
 
 mod decode;
+mod lengths;
 mod types;
 
 pub use decode::decode;

@@ -5,6 +5,7 @@
 //! Nothing here can panic on hostile input: every length is checked by
 //! etherparse or by `try_into`, and errors are returned as [`DecodeError`].
 
+use super::lengths::payload_len;
 use super::types::{
     ArpOperation, ArpPacket, DecodeError, IcmpKind, IpPacket, LinkType, Network, PacketMeta,
     TcpFlags, Transport,
@@ -28,25 +29,33 @@ pub fn decode(
         stop_err,
         ..
     } = slice_by_link_type(link, data)?;
+    // Bytes of the frame that the capture did not keep.
+    let cut_off = usize::try_from(wire_len)
+        .unwrap_or(usize::MAX)
+        .saturating_sub(data.len());
 
-    let network = match net {
-        Some(LaxNetSlice::Ipv4(ipv4)) => {
+    let network = match &net {
+        Some(net @ LaxNetSlice::Ipv4(ipv4)) => {
             let header = ipv4.header();
             Network::Ip(IpPacket {
                 src: header.source_addr().into(),
                 dst: header.destination_addr().into(),
                 transport: transport_of(transport.as_ref(), ipv4.payload().ip_number.0),
+                ttl: header.ttl(),
+                payload_len: payload_len(net, transport.as_ref(), cut_off),
             })
         }
-        Some(LaxNetSlice::Ipv6(ipv6)) => {
+        Some(net @ LaxNetSlice::Ipv6(ipv6)) => {
             let header = ipv6.header();
             Network::Ip(IpPacket {
                 src: header.source_addr().into(),
                 dst: header.destination_addr().into(),
                 transport: transport_of(transport.as_ref(), ipv6.payload().ip_number.0),
+                ttl: header.hop_limit(),
+                payload_len: payload_len(net, transport.as_ref(), cut_off),
             })
         }
-        Some(LaxNetSlice::Arp(arp)) => Network::Arp(arp_of(&arp)?),
+        Some(LaxNetSlice::Arp(arp)) => Network::Arp(arp_of(arp)?),
         None if stop_err.is_some() => return Err(DecodeError::Truncated),
         None => return Err(DecodeError::OtherProtocol),
     };
