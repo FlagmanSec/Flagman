@@ -5,5 +5,5 @@ mod record;
 mod table;
 
 pub use key::{Endpoint, FlowKey, Protocol, endpoints_of};
-pub use record::{FlowRecord, FlowStart, StartKind, TcpOutcome};
+pub use record::{FlowEnd, FlowRecord, FlowStart, StartKind, TcpOutcome};
 pub use table::{FlowTable, FlowTableConfig};

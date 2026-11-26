@@ -107,6 +107,13 @@ fn print_summary(summary: &Summary, store: &Store) -> Result<()> {
         "Replayed {}: {} packets ({} unreadable) in {:.2} s.",
         summary.source, counters.packets, counters.packets_skipped, summary.seconds
     );
+    if counters.detector_evicted > 0 || counters.flows_evicted > 0 {
+        println!(
+            "Detector saturated: to stay within its memory limit, it forgot {} of its least \
+             active entries and ended {} connections early.",
+            counters.detector_evicted, counters.flows_evicted
+        );
+    }
     let incidents = store.incidents(&IncidentFilter {
         limit: 100,
         ..IncidentFilter::default()
@@ -118,7 +125,7 @@ fn print_summary(summary: &Summary, store: &Store) -> Result<()> {
     }
     for incident in incidents.iter().rev() {
         println!(
-            "  #{} {} from {}, {} to {}",
+            "  #{} {}, host {}, {} to {}",
             incident.id,
             incident.severity,
             incident.src_ip,
@@ -176,7 +183,9 @@ fn serve(args: &ReplayArgs, ui_dir: &Path, store: Store, summary: &Summary) -> R
         packets: counters.packets,
         bytes: counters.bytes,
         packets_skipped: counters.packets_skipped,
-        flows_untracked: counters.flows_untracked,
+        flows_evicted: counters.flows_evicted,
+        detector_evicted: counters.detector_evicted,
+        saturated_at: counters.saturated_at,
         ..SensorHealth::default()
     };
     let state = ApiState {

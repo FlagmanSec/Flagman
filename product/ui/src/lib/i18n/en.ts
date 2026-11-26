@@ -41,6 +41,9 @@ const en = {
   'health.suricata.reading': 'reading alerts ({hits} so far)',
   'health.suricata.waiting': 'not found',
   'health.storage_errors': 'Results not saved: {count}',
+  'health.saturated': 'Detector saturated',
+  'health.saturated.last': 'last at {time}',
+  'health.saturated.help': 'Flagman reached its memory limit and made room by forgetting the least active entries ({entries} so far) and connections ({flows}). A flood of fake addresses can cause this. Very active hosts, like a real scanner, are kept.',
 
   'overview.title': 'Overview',
   'kpi.open_incidents': 'Open incidents',
@@ -104,7 +107,7 @@ const en = {
 
   'col.severity': 'Severity',
   'col.incident': 'Incident',
-  'col.source': 'Source',
+  'col.host': 'Host',
   'col.targets': 'Targets',
   'col.alerts': 'Alerts',
   'col.started': 'Started',
@@ -134,7 +137,7 @@ const en = {
 
   'incident.title': 'Incident {id}',
   'incident.back': 'All incidents',
-  'incident.from': 'Source',
+  'incident.host': 'Host',
   'incident.when': 'When',
   'incident.lasted': 'lasted {duration}',
   'incident.targets': 'Targets',
@@ -153,17 +156,17 @@ const en = {
 
   'story.port_scan': '{src} tried {count} different {protocol} ports on {dst}, to find out which services it runs.',
   'story.host_sweep': '{src} searched your network for devices: it checked {count} addresses ({method}).',
-  'story.brute_force': '{src} opened {count} connections to {service} on {dst} within a minute, the way password-guessing programs do.',
+  'story.brute_force': '{src} made {count} short or refused connections to {service} on {dst}, the way password-guessing programs do.',
   'story.signature': 'Suricata recognised a known pattern in traffic from {src}: “{signature}” (seen {count} times).',
 
   'why.port_scan': 'A port scan is often the first step of an attack: it shows which programs on a device can be reached from the network.',
   'why.host_sweep': 'A sweep lists the devices on your network. Attackers do it to choose targets, but some normal tools (routers, network apps) do it too.',
-  'why.brute_force': 'Many quick connections to a login service usually mean someone is guessing passwords. One correct guess opens the device to them.',
+  'why.brute_force': 'Servers close the connection after wrong passwords, so many short or refused connections to a login service usually mean someone is guessing passwords. One correct guess opens the device to them.',
   'why.signature': 'Suricata compares traffic with rules written for known attacks and suspicious behaviour, and this traffic matched one.',
 
   'check.port_scan': 'Do you know {src}? If it is your own scan or a security tool, mark this incident as a false positive. If not, find the device in your router’s list of connected devices and disconnect it.',
   'check.host_sweep': 'If {src} is your router or a known network app, add it to ignore_sources in flagman.toml so it is not reported again. Otherwise, treat it like an unknown device.',
-  'check.brute_force': 'Look at the login log of {dst} (for SSH: journalctl -u ssh). Use strong passwords or keys, and do not expose this service to the internet.',
+  'check.brute_force': 'Look at the login log of {dst} (for SSH: journalctl -u ssh). Failed logins confirm it. If you see your own scripts logging in again and again (git, Ansible), add {src} to ignore_sources in flagman.toml. Use strong passwords or keys, and do not expose this service to the internet.',
   'check.signature': 'Search for rule {sid} to read what it detects, and look at the connections below for anything you do not recognise.',
 
   'method.arp': 'ARP requests',

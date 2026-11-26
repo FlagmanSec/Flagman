@@ -42,6 +42,9 @@ const fr: Record<MessageKey, string> = {
   'health.suricata.reading': 'lit les alertes ({hits} jusqu’ici)',
   'health.suricata.waiting': 'introuvable',
   'health.storage_errors': 'Résultats non enregistrés : {count}',
+  'health.saturated': 'Détecteur saturé',
+  'health.saturated.last': 'dernière fois à {time}',
+  'health.saturated.help': 'Flagman a atteint sa limite de mémoire et a fait de la place en oubliant les entrées les moins actives ({entries} jusqu’ici) et des connexions ({flows}). Un flot de fausses adresses peut en être la cause. Les machines très actives, comme un vrai scanner, sont gardées.',
 
   'overview.title': 'Vue d’ensemble',
   'kpi.open_incidents': 'Incidents ouverts',
@@ -105,7 +108,7 @@ const fr: Record<MessageKey, string> = {
 
   'col.severity': 'Gravité',
   'col.incident': 'Incident',
-  'col.source': 'Source',
+  'col.host': 'Hôte',
   'col.targets': 'Cibles',
   'col.alerts': 'Alertes',
   'col.started': 'Début',
@@ -135,7 +138,7 @@ const fr: Record<MessageKey, string> = {
 
   'incident.title': 'Incident {id}',
   'incident.back': 'Tous les incidents',
-  'incident.from': 'Source',
+  'incident.host': 'Hôte',
   'incident.when': 'Quand',
   'incident.lasted': 'durée {duration}',
   'incident.targets': 'Cibles',
@@ -154,17 +157,17 @@ const fr: Record<MessageKey, string> = {
 
   'story.port_scan': '{src} a essayé {count} ports {protocol} différents sur {dst}, pour savoir quels services y tournent.',
   'story.host_sweep': '{src} a cherché les appareils de votre réseau : il a testé {count} adresses ({method}).',
-  'story.brute_force': '{src} a ouvert {count} connexions vers {service} sur {dst} en moins d’une minute, comme le font les programmes qui devinent des mots de passe.',
+  'story.brute_force': '{src} a fait {count} connexions courtes ou refusées vers {service} sur {dst}, comme le font les programmes qui devinent des mots de passe.',
   'story.signature': 'Suricata a reconnu un motif connu dans le trafic de {src} : « {signature} » (vu {count} fois).',
 
   'why.port_scan': 'Un scan de ports est souvent la première étape d’une attaque : il montre quels programmes d’un appareil sont joignables depuis le réseau.',
   'why.host_sweep': 'Un balayage liste les appareils de votre réseau. Les attaquants le font pour choisir leurs cibles, mais certains outils normaux (box, applications réseau) le font aussi.',
-  'why.brute_force': 'Beaucoup de connexions rapides vers un service de connexion signifient souvent que quelqu’un devine des mots de passe. Un seul bon essai lui ouvre l’appareil.',
+  'why.brute_force': 'Les serveurs ferment la connexion après de mauvais mots de passe : beaucoup de connexions courtes ou refusées vers un service de connexion signifient donc souvent que quelqu’un devine des mots de passe. Un seul bon essai lui ouvre l’appareil.',
   'why.signature': 'Suricata compare le trafic à des règles écrites pour des attaques connues et des comportements suspects, et ce trafic correspond à l’une d’elles.',
 
   'check.port_scan': 'Connaissez-vous {src} ? Si c’est votre propre scan ou un outil de sécurité, marquez cet incident comme faux positif. Sinon, trouvez l’appareil dans la liste des appareils connectés de votre box et déconnectez-le.',
   'check.host_sweep': 'Si {src} est votre box ou une application réseau connue, ajoutez-le à ignore_sources dans flagman.toml pour qu’il ne soit plus signalé. Sinon, traitez-le comme un appareil inconnu.',
-  'check.brute_force': 'Consultez le journal de connexion de {dst} (pour SSH : journalctl -u ssh). Utilisez des mots de passe forts ou des clés, et n’exposez pas ce service à Internet.',
+  'check.brute_force': 'Consultez le journal de connexion de {dst} (pour SSH : journalctl -u ssh). Des échecs de connexion le confirment. Si vous voyez vos propres scripts se connecter encore et encore (git, Ansible), ajoutez {src} à ignore_sources dans flagman.toml. Utilisez des mots de passe forts ou des clés, et n’exposez pas ce service à Internet.',
   'check.signature': 'Cherchez la règle {sid} pour savoir ce qu’elle détecte, et regardez les connexions ci-dessous pour repérer ce que vous ne reconnaissez pas.',
 
   'method.arp': 'requêtes ARP',

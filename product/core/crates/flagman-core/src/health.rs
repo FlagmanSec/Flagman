@@ -32,7 +32,13 @@ pub struct SensorHealth {
     pub kernel_received: Option<u64>,
     pub kernel_dropped: Option<u64>,
     pub flows_active: u64,
-    pub flows_untracked: u64,
+    /// Flows ended early because the flow table was full.
+    pub flows_evicted: u64,
+    /// Entries the detectors forgot because they were full (the least active
+    /// ones). Above zero, the dashboard shows "Detector saturated".
+    pub detector_evicted: u64,
+    /// The last time the flow table or a detector was full.
+    pub saturated_at: Option<Timestamp>,
     pub suricata: SuricataHealth,
     /// Batches the storage writer failed to save (for example, disk full).
     pub storage_errors: u64,

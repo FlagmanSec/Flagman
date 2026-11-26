@@ -28,13 +28,14 @@ Sorted by theme, then alphabetically.
 | Word | Meaning |
 |---|---|
 | **Alert** | One suspicious behaviour, with its evidence: "192.168.1.50 tried 1,000 ports of 192.168.1.10". |
-| **Brute force / login attempts** | Trying passwords again and again on a login service (SSH, RDP…). Flagman sees it as many new connections to the same login port. |
+| **Brute force / login attempts** | Trying passwords again and again on a login service (SSH, RDP…). Flagman never sees the password; it sees many connections to the same login port that were refused or closed within seconds, because servers hang up after wrong passwords. |
 | **False positive** | An alert about something harmless, such as your own scan. Mark it as such on the incident page. |
 | **Finding** | Inside a detector: a key (for example scanner and target) that crossed its threshold. It becomes an alert, and the alert is updated while the finding grows. |
 | **Flow** | One conversation between two addresses and ports, from its first packet to its last, with packet and byte counts. |
 | **Host sweep / network sweep** | Checking many addresses of the network to find which devices are up (`nmap -sn`). |
 | **IDS** | Intrusion detection system: watches and warns. Flagman is an IDS. An **IPS** also blocks. |
-| **Incident** | Alerts from the same source device, grouped while the gaps stay under 30 minutes. One incident is one story to review. |
+| **Incident** | Alerts about the same device (its **host**), grouped while the gaps stay under 30 minutes. The host is usually the device behind the alerts; for a Suricata alert on traffic from the internet, it is your device that received it. One incident is one story to review. |
+| **Detector saturated** | Flagman's tables reached their size limit (50,000 entries per detector, 100,000 connections), so it forgot the least active entries to make room. Usually a flood of fake addresses. Shown in the strip at the top of the dashboard. |
 | **MITRE ATT&CK** | A public catalogue of attacker behaviour (<https://attack.mitre.org>). A **tactic** is a goal (Discovery, Credential Access); a **technique** is a way to reach it (T1046 Network Service Discovery). |
 | **Port scan** | Trying many ports of one machine to see which services answer (`nmap 192.168.1.10`). |
 | **Severity** | Low, medium, high or critical. Shown with a shape and a word, never colour alone. |

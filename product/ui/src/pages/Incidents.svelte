@@ -72,7 +72,7 @@
           <tr>
             <th>{t('col.severity')}</th>
             <th>{t('col.incident')}</th>
-            <th>{t('col.source')}</th>
+            <th>{t('col.host')}</th>
             <th>{t('col.targets')}</th>
             <th class="num">{t('col.alerts')}</th>
             <th>{t('col.started')}</th>

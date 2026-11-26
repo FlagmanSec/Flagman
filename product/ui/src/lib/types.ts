@@ -29,7 +29,12 @@ export interface Health {
   kernel_received: number | null;
   kernel_dropped: number | null;
   flows_active: number;
-  flows_untracked: number;
+  /** Flows ended early because the flow table was full. */
+  flows_evicted: number;
+  /** Entries the detectors forgot because they were full. */
+  detector_evicted: number;
+  /** The last time the flow table or a detector was full. */
+  saturated_at: number | null;
   suricata: SuricataHealth;
   storage_errors: number;
   running: boolean;

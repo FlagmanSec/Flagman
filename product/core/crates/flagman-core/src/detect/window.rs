@@ -74,6 +74,11 @@ impl<T: Copy + Eq + Hash> DistinctWindow<T> {
         self.events.front().map(|&(ts, _)| ts)
     }
 
+    /// Time of the newest event.
+    pub fn newest(&self) -> Option<Timestamp> {
+        self.events.back().map(|&(ts, _)| ts)
+    }
+
     /// The distinct values, in the order they first appear in the window.
     pub fn distinct_values(&self) -> Vec<T> {
         let mut seen = HashSet::new();

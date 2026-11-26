@@ -9,7 +9,7 @@ timestamps, so a replayed capture behaves exactly like live traffic.
 | `packet/` | Decodes captured bytes into addresses, ports, TCP flags, ARP |
 | `flow/` | The flow meter: one entry per conversation, reported when it ends |
 | `detect/` | The detectors: port scan, host sweep, brute force, Suricata hits |
-| `incident/` | Groups alerts by source into incidents, sets severity |
+| `incident/` | Groups alerts by host into incidents, sets severity |
 | `traffic.rs` | Packets and bytes per protocol, for the charts |
 | `engine.rs` | Runs all of the above for each packet, in order |
 | `alert.rs`, `health.rs`, `ids.rs`, `net.rs`, `time.rs` | Shared types and small helpers |

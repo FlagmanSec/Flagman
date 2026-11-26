@@ -1,4 +1,4 @@
-//! An incident: every alert caused by one host, close together in time.
+//! An incident: every alert about one host, close together in time.
 
 use crate::alert::{AlertKind, Severity};
 use crate::time::Timestamp;
@@ -10,7 +10,10 @@ pub struct Incident {
     pub id: u64,
     pub first_seen: Timestamp,
     pub last_seen: Timestamp,
-    /// The host behind every alert of this incident.
+    /// The host this incident is about: the source of its alerts (the
+    /// scanner, the guesser), except for Suricata alerts on traffic from the
+    /// internet to one of your devices, which are filed under that device.
+    /// The column keeps its old name, `src_ip`, so stored data stays valid.
     pub src_ip: IpAddr,
     pub severity: Severity,
     /// Number of distinct alerts.
@@ -20,7 +23,8 @@ pub struct Incident {
     pub kinds: Vec<AlertKind>,
     /// MITRE ATT&CK tactics, in the order they first appeared.
     pub tactics: Vec<String>,
-    /// Hosts that were targeted (at most [`MAX_TARGETS`]).
+    /// Hosts that were targeted (at most [`MAX_TARGETS`]), other than the
+    /// incident's own host.
     pub targets: Vec<IpAddr>,
 }
 

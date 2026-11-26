@@ -3,7 +3,7 @@
 use super::*;
 use flagman_core::alert::{Alert, AlertDetails, AlertKind, Severity};
 use flagman_core::engine::Output;
-use flagman_core::flow::{Endpoint, FlowRecord, Protocol, TcpOutcome};
+use flagman_core::flow::{Endpoint, FlowEnd, FlowRecord, Protocol, TcpOutcome};
 use flagman_core::incident::Incident;
 use flagman_core::time::Timestamp;
 use flagman_core::traffic::{TrafficClass, TrafficMinute};
@@ -28,6 +28,7 @@ fn flow(at: i64, src: &str, dst: &str, dst_port: u16, bytes: u64) -> Output {
         bytes_fwd: bytes,
         bytes_rev: 0,
         tcp_outcome: Some(TcpOutcome::Rejected),
+        end: FlowEnd::Closed,
     })
 }
 

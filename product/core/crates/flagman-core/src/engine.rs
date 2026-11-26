@@ -1,6 +1,10 @@
 //! The engine wires the pipeline together for one packet at a time:
 //! decode, then flow meter, then detectors, then incidents.
 //!
+//! Detectors hear about a flow twice: when it starts (scans and sweeps count
+//! connection requests) and when it ends (login attempts are judged by how
+//! the connection finished).
+//!
 //! It never blocks and never touches the disk. Everything it produces is
 //! pushed into an `out` vector of [`Output`]s, which the daemon hands to the
 //! storage writer.
@@ -56,7 +60,12 @@ pub struct EngineCounters {
     pub bytes: u64,
     pub packets_skipped: u64,
     pub flows_active: u64,
-    pub flows_untracked: u64,
+    /// Flows ended early because the flow table was full.
+    pub flows_evicted: u64,
+    /// Entries the detectors forgot because they were full.
+    pub detector_evicted: u64,
+    /// The last time the flow table or a detector was full.
+    pub saturated_at: Option<Timestamp>,
     pub last_packet_at: Option<Timestamp>,
 }
 
@@ -123,7 +132,12 @@ impl Engine {
                     Transport::Other { .. } => TrafficClass::Other,
                 };
                 self.count_traffic(packet.ts, class, packet.wire_len, out);
-                if let Some(start) = self.flows.observe(packet.ts, packet.wire_len, ip_packet) {
+                let mut evicted = Vec::new();
+                let start = self
+                    .flows
+                    .observe(packet.ts, packet.wire_len, ip_packet, &mut evicted);
+                self.flows_ended(evicted, &mut alerts, out);
+                if let Some(start) = start {
                     self.detectors.on_flow_start(&start, &mut alerts);
                 }
             }
@@ -149,8 +163,9 @@ impl Engine {
             return;
         }
         self.next_housekeeping = now.plus_millis(HOUSEKEEPING_EVERY_MS);
-        out.extend(self.flows.expire(now).into_iter().map(Output::Flow));
         let mut alerts = Vec::new();
+        let ended = self.flows.expire(now);
+        self.flows_ended(ended, &mut alerts, out);
         self.detectors.expire(now, &mut alerts);
         self.publish(alerts, out);
         self.incidents.expire(now);
@@ -163,8 +178,9 @@ impl Engine {
     /// Flushes everything: open flows, open findings, partial traffic counts.
     /// Used at the end of a replay and when the daemon stops.
     pub fn finish(&mut self, out: &mut Vec<Output>) {
-        out.extend(self.flows.drain().into_iter().map(Output::Flow));
         let mut alerts = Vec::new();
+        let ended = self.flows.drain();
+        self.flows_ended(ended, &mut alerts, out);
         self.detectors.expire(Timestamp(i64::MAX / 2), &mut alerts);
         self.publish(alerts, out);
         let mut rows = Vec::new();
@@ -189,6 +205,22 @@ impl Engine {
         out.extend(rows.into_iter().map(Output::Traffic));
     }
 
+    /// Shows finished flows to the detectors, in the order they ended, then
+    /// outputs them for storage.
+    fn flows_ended(
+        &mut self,
+        ended: Vec<FlowRecord>,
+        alerts: &mut Vec<Alert>,
+        out: &mut Vec<Output>,
+    ) {
+        let mut by_end: Vec<&FlowRecord> = ended.iter().collect();
+        by_end.sort_by_key(|flow| flow.last_seen);
+        for flow in by_end {
+            self.detectors.on_flow_end(flow, alerts);
+        }
+        out.extend(ended.into_iter().map(Output::Flow));
+    }
+
     /// Links each alert to its incident, then outputs both.
     fn publish(&mut self, alerts: Vec<Alert>, out: &mut Vec<Output>) {
         for mut alert in alerts {
@@ -200,8 +232,12 @@ impl Engine {
     }
 
     fn refresh_flow_counters(&mut self) {
+        let (flows_evicted, flows_full_at) = self.flows.evictions();
+        let detectors = self.detectors.evictions();
         self.counters.flows_active = self.flows.active() as u64;
-        self.counters.flows_untracked = self.flows.untracked();
+        self.counters.flows_evicted = flows_evicted;
+        self.counters.detector_evicted = detectors.count;
+        self.counters.saturated_at = flows_full_at.max(detectors.last_at);
     }
 }
 
@@ -255,5 +291,52 @@ mod tests {
         );
         assert!(out.iter().any(|o| matches!(o, Output::Traffic(_))));
         assert_eq!(engine.counters().packets, 100);
+    }
+
+    /// The attack from the review of phase 1: about 1,000 packets per second
+    /// from 60,000 fake addresses fill the detectors, then a real scan runs.
+    /// Before the fix the scan went unseen; now the fake entries make room.
+    #[test]
+    fn a_flood_of_fake_addresses_does_not_hide_a_real_scan() {
+        let mut engine = Engine::new(&EngineConfig::default(), StartIds::default());
+        let mut out = Vec::new();
+        let send = |engine: &mut Engine, ms: i64, frame: Vec<u8>, out: &mut Vec<Output>| {
+            engine.process_frame(
+                LinkType::Ethernet,
+                Timestamp(ms),
+                frame.len() as u32,
+                &frame,
+                out,
+            );
+        };
+        for i in 0..60_000u32 {
+            let fake = format!("10.{}.{}.{}", i >> 16, (i >> 8) & 0xff, i & 0xff);
+            send(
+                &mut engine,
+                i64::from(i),
+                tcp_frame(&fake, 40_000, "192.168.1.10", 80, SYN),
+                &mut out,
+            );
+            if (55_000..56_000).contains(&i) {
+                let port = u16::try_from(i - 55_000 + 1).unwrap();
+                let syn = tcp_frame("192.168.1.66", 50_000, "192.168.1.10", port, SYN);
+                send(&mut engine, i64::from(i), syn, &mut out);
+            }
+        }
+        engine.finish(&mut out);
+
+        let scan = out
+            .iter()
+            .rev()
+            .find_map(|o| match o {
+                Output::Alert(alert) if alert.kind == AlertKind::PortScan => Some(alert),
+                _ => None,
+            })
+            .expect("the real scan is detected");
+        assert_eq!(scan.src_ip.to_string(), "192.168.1.66");
+        assert_eq!(scan.count, 1_000);
+        let counters = engine.counters();
+        assert!(counters.detector_evicted > 0, "the detectors were full");
+        assert!(counters.saturated_at.is_some());
     }
 }

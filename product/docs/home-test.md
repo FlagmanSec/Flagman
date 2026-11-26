@@ -79,8 +79,8 @@ each address
 ([nmap host discovery](https://nmap.org/book/man-host-discovery.html)).
 ARP requests are broadcasts, so the sensor sees all of them.
 
-**Expected:** a new incident from the tester's address, with a **Network
-sweep** alert (the dashboard refreshes every 10 seconds). For a `/24` network, nmap asks for every address but its own, so the
+**Expected:** a new incident whose **Host** is the tester's address, with
+a **Network sweep** alert (the dashboard refreshes every 10 seconds). For a `/24` network, nmap asks for every address but its own, so the
 count should be close to 255.
 
 ## Step 4: port scan
@@ -123,9 +123,23 @@ Windows (PowerShell):
 ```
 
 **Expected:** a **Login attempts** alert on port 22 (SSH) with about 15
-connections. If steps 3 to 5 happened within 30 minutes, they are one
-incident. That incident now covers two attack stages (Discovery, then
-Credential Access), so it is raised to **critical**.
+connections, about 5 seconds after the last one ends (Flagman judges a
+connection when it is over). If steps 3 to 5 happened within 30 minutes,
+they are one incident. That incident now covers two attack stages
+(Discovery, then Credential Access), so it is raised to **critical**.
+
+What counts: a connection the sensor **refused** (no SSH server: it answers
+with a reset) or one **closed within 30 seconds** (an SSH server that turned
+the login down). Two cases give no alert, on purpose:
+
+- the sensor's firewall drops port 22 without any answer (for example `ufw`
+  turned on without an SSH rule): no password can be tried, so these are
+  not login attempts;
+- a login that works and stays open, like your own SSH session.
+
+If you have a spare minute, also try the opposite: log in to the sensor
+from the tester the normal way (with your password or key) and stay
+connected for a minute. That must **not** raise a login alert.
 
 ## Step 6: read the incident
 
@@ -170,10 +184,13 @@ curl http://testmynids.org/uid/index.html
 ```
 
 Suricata recognises the answer (rule 2100498, "GPL ATTACK_RESPONSE id check
-returned root"). **Expected in Flagman:** an incident from the address of
-testmynids.org with a **Suricata rule** alert, and the top strip saying
-**Suricata: reading alerts**. Flagman only reads alerts written after it
-started, so run the test after Flagman is up.
+returned root"). The answer comes from the testmynids.org server, so it is
+the alert's source; Flagman files the alert under the device that received
+it. **Expected in Flagman:** an incident whose **Host** is the sensor's own
+address, with a **Suricata rule** alert that names the testmynids.org server
+as the source, and the top strip saying **Suricata: reading alerts**.
+Flagman only reads alerts written after it started, so run the test after
+Flagman is up.
 
 If the strip says **permission denied**, the `flagman` user cannot read
 `/var/log/suricata/eve.json`. Look at its owner and group with
@@ -196,6 +213,23 @@ and Ctrl-C after step 5. Like Flagman, this keeps only packet headers, but
 the file still lists your devices' addresses: share it only within the team,
 never in the public repository.
 
+## Step 9: a week of normal use
+
+The lab recordings only prove that Flagman stays quiet on a few minutes of
+simple traffic (`lab-normal-traffic.pcap` is 500 packets). The real false
+alarm rate can only come from your network. Leave Flagman running for a week
+while you use your computers as usual, then open **Incidents** and, for each
+one, note:
+
+- the day, the kind of alert and the host;
+- whether it was real or a false alarm, and if false, what caused it (for
+  example a router drawing its device map, or your own scripts logging in to
+  a machine at home with git or Ansible, which can look like login attempts);
+- whether **Detector saturated** ever appeared in the top strip, and when.
+
+Mark each false alarm **False positive** on its page. These numbers are what
+we will use to tune the thresholds.
+
 ## Write down the results
 
 Copy this table into your notes or the team chat:
@@ -207,9 +241,12 @@ Copy this table into your notes or the team chat:
 | Port scan (`sudo nmap SENSOR_IP`) | Port scan, TCP, about 1,000 ports | | | |
 | UDP scan (optional) | Port scan, UDP | | | |
 | Login attempts (ssh loop) | Login attempts, port 22, about 15 | | | |
+| Normal SSH login, kept open 1 min (optional) | no login alert | | – | |
 | Incident severity after steps 3 to 5 | critical | | – | |
 | Suricata test (optional) | Suricata rule alert | | | |
 | Dropped by the kernel | None dropped | | – | |
+| Detector saturated | never shown | | – | |
+| A week of normal use | incidents per day, and how many were false alarms | | – | |
 
 ## Troubleshooting
 

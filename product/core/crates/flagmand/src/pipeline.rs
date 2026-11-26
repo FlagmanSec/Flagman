@@ -102,7 +102,9 @@ fn update_health(health: &RwLock<SensorHealth>, source: &mut dyn PacketSource, e
     health.bytes = counters.bytes;
     health.packets_skipped = counters.packets_skipped;
     health.flows_active = counters.flows_active;
-    health.flows_untracked = counters.flows_untracked;
+    health.flows_evicted = counters.flows_evicted;
+    health.detector_evicted = counters.detector_evicted;
+    health.saturated_at = counters.saturated_at;
     health.last_packet_at = counters.last_packet_at;
     health.kernel_received = stats.map(|stats| stats.received);
     health.kernel_dropped = stats.map(|stats| stats.dropped);

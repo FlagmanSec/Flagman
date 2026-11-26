@@ -1,7 +1,7 @@
 //! Signature hits from Suricata, grouped so that one rule firing 500 times
 //! between the same two hosts is one alert with a count of 500.
 
-use super::tracker::{Finding, Tracker, TrackerConfig};
+use super::tracker::{Evictions, Finding, Tracker, TrackerConfig};
 use crate::alert::{Alert, AlertDetails, AlertKind, AttackRef, Severity};
 use crate::flow::Protocol;
 use crate::ids::IdGenerator;
@@ -71,6 +71,10 @@ impl SignatureDetector {
         }
         let tracker = &self.tracker;
         self.latest_hit.retain(|key, _| tracker.contains(key));
+    }
+
+    pub fn evictions(&self) -> Evictions {
+        self.tracker.evictions()
     }
 
     fn alert_from(&self, finding: Finding<Key, u64>) -> Option<Alert> {

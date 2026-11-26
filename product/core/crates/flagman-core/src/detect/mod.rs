@@ -1,6 +1,6 @@
-//! Detectors: they watch new flows, ARP requests and Suricata hits, and
-//! produce [`Alert`]s. Each detector lives in its own file; [`Detectors`]
-//! simply forwards every event to all of them.
+//! Detectors: they watch new flows, finished flows, ARP requests and
+//! Suricata hits, and produce [`Alert`]s. Each detector lives in its own
+//! file; [`Detectors`] simply forwards every event to the ones that need it.
 
 mod attack;
 mod brute_force;
@@ -13,11 +13,11 @@ mod window;
 
 pub use config::{BruteForceConfig, DetectConfig, HostSweepConfig, PortScanConfig};
 pub use signature::SignatureHit;
-pub use tracker::{Finding, Tracker, TrackerConfig};
+pub use tracker::{Evictions, Finding, Tracker, TrackerConfig};
 pub use window::DistinctWindow;
 
 use crate::alert::Alert;
-use crate::flow::FlowStart;
+use crate::flow::{FlowRecord, FlowStart};
 use crate::ids::IdGenerator;
 use crate::packet::ArpPacket;
 use crate::time::Timestamp;
@@ -58,7 +58,14 @@ impl Detectors {
         let ids = &mut self.alert_ids;
         self.port_scan.on_flow_start(start, ids, out);
         self.host_sweep.on_flow_start(start, ids, out);
-        self.brute_force.on_flow_start(start, ids, out);
+    }
+
+    /// A flow has ended (closed, timed out, or pushed out of a full table).
+    pub fn on_flow_end(&mut self, flow: &FlowRecord, out: &mut Vec<Alert>) {
+        if self.ignored_sources.contains(&flow.initiator.ip) {
+            return;
+        }
+        self.brute_force.on_flow_end(flow, &mut self.alert_ids, out);
     }
 
     pub fn on_arp(&mut self, ts: Timestamp, arp: &ArpPacket, out: &mut Vec<Alert>) {
@@ -78,6 +85,15 @@ impl Detectors {
         self.host_sweep.expire(now, out);
         self.brute_force.expire(now, out);
         self.signatures.expire(now, out);
+    }
+
+    /// Keys all detectors had to forget because they were full.
+    pub fn evictions(&self) -> Evictions {
+        self.port_scan
+            .evictions()
+            .merge(self.host_sweep.evictions())
+            .merge(self.brute_force.evictions())
+            .merge(self.signatures.evictions())
     }
 }
 

@@ -1,6 +1,7 @@
-<!-- One line on the sensor's state: is it capturing, losing packets, reading Suricata? -->
+<!-- One line on the sensor's state: is it capturing, losing packets, full, reading Suricata? -->
 <script lang="ts">
   import { formatNumber, formatTime } from '../lib/format';
+  import { saturation } from '../lib/health';
   import { fmt, t } from '../lib/i18n/index.svelte';
   import type { Health } from '../lib/types';
   import StatusIcon from './StatusIcon.svelte';
@@ -13,6 +14,8 @@
     if (!health.running) return { level: 'critical' as const, text: t('health.stopped') };
     return { level: 'good' as const, text: t('health.live', { source: health.source }) };
   });
+
+  const saturated = $derived(health ? saturation(health) : null);
 
   const suricata = $derived.by(() => {
     const s = health?.suricata;
@@ -45,6 +48,19 @@
       {:else}
         <span class="item"><StatusIcon level="good" /> {t('health.no_drops')}</span>
       {/if}
+    {/if}
+    {#if saturated}
+      <span
+        class="item"
+        title={t('health.saturated.help', {
+          entries: formatNumber(health.detector_evicted, fmt()),
+          flows: formatNumber(health.flows_evicted, fmt()),
+        })}
+      >
+        <StatusIcon level={saturated.level} />
+        {t('health.saturated')}
+        <span class="muted">{t('health.saturated.last', { time: formatTime(saturated.at, fmt()) })}</span>
+      </span>
     {/if}
     <span class="item">
       <span class="muted">{t('health.last_packet')}</span>

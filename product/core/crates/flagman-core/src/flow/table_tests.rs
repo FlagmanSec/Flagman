@@ -2,7 +2,7 @@
 
 use super::*;
 use crate::packet::{Network, PacketMeta};
-use crate::testutil::{ACK, RST, RST_ACK, SYN, SYN_ACK, packet_at, tcp_frame, udp_frame};
+use crate::testutil::{ACK, FIN_ACK, RST, RST_ACK, SYN, SYN_ACK, packet_at, tcp_frame, udp_frame};
 
 const CLIENT: &str = "192.168.1.50";
 const SERVER: &str = "192.168.1.10";
@@ -14,10 +14,24 @@ fn ip_packet(meta: &PacketMeta) -> IpPacket {
     }
 }
 
-/// Feeds one frame at time `ms` into the table.
-fn feed(table: &mut FlowTable, ms: i64, frame: Vec<u8>) -> Option<FlowStart> {
+/// Feeds one frame at time `ms` into the table, and returns any flow the
+/// table had to end early to make room.
+fn feed_full(
+    table: &mut FlowTable,
+    ms: i64,
+    frame: Vec<u8>,
+) -> (Option<FlowStart>, Vec<FlowRecord>) {
     let meta = packet_at(ms, &frame);
-    table.observe(meta.ts, meta.wire_len, &ip_packet(&meta))
+    let mut ended = Vec::new();
+    let start = table.observe(meta.ts, meta.wire_len, &ip_packet(&meta), &mut ended);
+    (start, ended)
+}
+
+/// Feeds one frame at time `ms` into a table that is not full.
+fn feed(table: &mut FlowTable, ms: i64, frame: Vec<u8>) -> Option<FlowStart> {
+    let (start, ended) = feed_full(table, ms, frame);
+    assert!(ended.is_empty(), "the table was not supposed to be full");
+    start
 }
 
 #[test]
@@ -43,6 +57,37 @@ fn a_full_handshake_is_one_established_flow() {
     assert_eq!(record.packets_fwd, 2);
     assert_eq!(record.packets_rev, 1);
     assert_eq!(record.tcp_outcome, Some(TcpOutcome::Established));
+    assert_eq!(
+        record.end,
+        FlowEnd::Stopped,
+        "still open when the replay ended"
+    );
+}
+
+#[test]
+fn a_connection_closed_with_fin_in_both_directions_ends_as_closed() {
+    let mut table = FlowTable::new(FlowTableConfig::default());
+    feed(&mut table, 0, tcp_frame(CLIENT, 40_010, SERVER, 22, SYN));
+    feed(
+        &mut table,
+        1,
+        tcp_frame(SERVER, 22, CLIENT, 40_010, SYN_ACK),
+    );
+    feed(&mut table, 2, tcp_frame(CLIENT, 40_010, SERVER, 22, ACK));
+    feed(
+        &mut table,
+        300,
+        tcp_frame(CLIENT, 40_010, SERVER, 22, FIN_ACK),
+    );
+    feed(
+        &mut table,
+        301,
+        tcp_frame(SERVER, 22, CLIENT, 40_010, FIN_ACK),
+    );
+    let ended = table.expire(Timestamp(6_000));
+    assert_eq!(ended.len(), 1, "closed flows only linger 5 s");
+    assert_eq!(ended[0].tcp_outcome, Some(TcpOutcome::Established));
+    assert_eq!(ended[0].end, FlowEnd::Closed);
 }
 
 #[test]
@@ -58,6 +103,7 @@ fn a_closed_port_is_rejected_and_ends_after_the_linger_time() {
     let ended = table.expire(Timestamp(6_000));
     assert_eq!(ended.len(), 1);
     assert_eq!(ended[0].tcp_outcome, Some(TcpOutcome::Rejected));
+    assert_eq!(ended[0].end, FlowEnd::Closed);
 }
 
 #[test]
@@ -82,6 +128,7 @@ fn an_unanswered_syn_ends_after_the_tcp_idle_timeout() {
     assert!(table.expire(Timestamp(idle_ms - 1)).is_empty());
     let ended = table.expire(Timestamp(idle_ms));
     assert_eq!(ended[0].tcp_outcome, Some(TcpOutcome::Unanswered));
+    assert_eq!(ended[0].end, FlowEnd::Idle);
 }
 
 #[test]
@@ -110,20 +157,56 @@ fn a_long_flow_is_cut_at_the_active_timeout() {
             udp_frame(CLIENT, 6_000, SERVER, 9_000),
         );
     }
-    assert_eq!(table.expire(Timestamp(11_000)).len(), 1);
+    let ended = table.expire(Timestamp(11_000));
+    assert_eq!(ended.len(), 1);
+    assert_eq!(ended[0].end, FlowEnd::ActiveTimeout);
 }
 
 #[test]
-fn a_full_table_still_reports_new_flows_to_the_detectors() {
+fn a_full_table_ends_its_least_recently_active_flow_to_make_room() {
     let config = FlowTableConfig {
-        max_flows: 2,
+        max_flows: 3,
         ..FlowTableConfig::default()
     };
     let mut table = FlowTable::new(config);
-    for port in 1..=4 {
-        let start = feed(&mut table, 0, tcp_frame(CLIENT, 40_000, SERVER, port, SYN));
-        assert!(start.is_some(), "port {port} must still be reported");
+    // Three flows; the one to port 1 then stays quiet while the others talk.
+    for port in 1..=3 {
+        feed(&mut table, 0, tcp_frame(CLIENT, 40_000, SERVER, port, SYN));
     }
-    assert_eq!(table.active(), 2);
-    assert_eq!(table.untracked(), 2);
+    feed(&mut table, 10, tcp_frame(CLIENT, 40_000, SERVER, 2, ACK));
+    feed(&mut table, 10, tcp_frame(CLIENT, 40_000, SERVER, 3, ACK));
+
+    let (start, ended) = feed_full(&mut table, 20, tcp_frame(CLIENT, 40_000, SERVER, 4, SYN));
+    assert!(start.is_some(), "the newcomer is tracked, never refused");
+    assert_eq!(ended.len(), 1);
+    assert_eq!(ended[0].responder.port, 1, "the quietest flow made room");
+    assert_eq!(ended[0].end, FlowEnd::Evicted);
+    assert_eq!(table.active(), 3);
+    assert_eq!(table.evictions(), (1, Some(Timestamp(20))));
+}
+
+#[test]
+fn a_flood_of_new_flows_cannot_push_out_an_active_connection() {
+    let config = FlowTableConfig {
+        max_flows: 100,
+        ..FlowTableConfig::default()
+    };
+    let mut table = FlowTable::new(config);
+    feed(&mut table, 0, tcp_frame(CLIENT, 41_000, SERVER, 22, SYN));
+    let mut evicted = Vec::new();
+    for i in 0..1_000u16 {
+        let ms = 1 + i64::from(i);
+        // One packet from a new fake address each millisecond...
+        let fake = format!("10.9.{}.{}", i / 250, i % 250 + 1);
+        evicted.extend(feed_full(&mut table, ms, tcp_frame(&fake, 1_234, SERVER, 80, SYN)).1);
+        // ...while the real connection keeps sending.
+        evicted.extend(feed_full(&mut table, ms, tcp_frame(CLIENT, 41_000, SERVER, 22, ACK)).1);
+    }
+    assert!(evicted.len() >= 900, "the flood pushed out its own entries");
+    assert!(evicted.iter().all(|record| record.responder.port == 80));
+    let real = table
+        .drain()
+        .into_iter()
+        .find(|record| record.responder.port == 22);
+    assert_eq!(real.map(|record| record.packets_fwd), Some(1_001));
 }

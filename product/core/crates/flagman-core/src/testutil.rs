@@ -35,6 +35,12 @@ pub const RST_ACK: TcpFlags = TcpFlags {
     fin: false,
     rst: true,
 };
+pub const FIN_ACK: TcpFlags = TcpFlags {
+    syn: false,
+    ack: true,
+    fin: true,
+    rst: false,
+};
 
 const MAC_A: [u8; 6] = [0x02, 0, 0, 0, 0, 0x0a];
 const MAC_B: [u8; 6] = [0x02, 0, 0, 0, 0, 0x0b];

@@ -54,14 +54,25 @@ and makes replay behave exactly like live capture.
 - **Flow meter** (`flow/table.rs`): groups packets into conversations. A
   flow ends when TCP closes it, after a quiet period (120 s TCP, 60 s UDP,
   30 s other), or after 300 s for long transfers. At most 100,000 flows are
-  tracked at once, so memory stays bounded.
+  tracked at once, so memory stays bounded. When the table is full, it ends
+  the least recently active tenth of its flows to make room: a flood pushes
+  out idle entries, never the next real connection. Each finished flow says
+  why it ended (closed, idle, active timeout, evicted, stopped).
 - **Detectors** (`detect/`): each one counts distinct things per key in a
   60-second sliding window (ports per scanner and target, addresses per
-  scanner, connection attempts per guesser and service). Crossing the
+  scanner, failed login connections per guesser and service). Crossing the
   threshold opens a *finding*, which becomes an alert. The alert is updated
   every 5 seconds while it grows, and closed after 120 quiet seconds.
-- **Incidents** (`incident/engine.rs`): alerts from the same source join
-  the same incident while the gaps stay under 30 minutes. Severity is the
+  Scans and sweeps look at flows when they *start* (a connection request is
+  enough); login attempts look at flows when they *end*, because only the
+  end shows whether the connection was refused, closed quickly, or became a
+  working session. Each detector follows at most 50,000 keys; when full, it
+  forgets the least active tenth (fewest distinct values, quiet for
+  longest), so a real scanner stays while fake one-packet sources go.
+- **Incidents** (`incident/engine.rs`): alerts about the same host join
+  the same incident while the gaps stay under 30 minutes. The host is the
+  alert's source, except for a Suricata alert on traffic from the internet
+  to a local device, which is filed under that device. Severity is the
   highest alert severity, raised one level when two or more ATT&CK tactics
   are involved.
 - **Traffic counters** (`traffic.rs`): packets and bytes per protocol,

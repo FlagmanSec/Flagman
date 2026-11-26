@@ -60,6 +60,27 @@ impl TcpOutcome {
     }
 }
 
+/// Why the flow meter stopped following a flow. The idea comes from IPFIX,
+/// the standard flow export format, which has a field for it
+/// (`flowEndReason`, element 136 of the IANA IPFIX registry).
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum FlowEnd {
+    /// No packet for the idle timeout.
+    Idle,
+    /// TCP closed the connection: FIN in both directions, or a reset.
+    /// This wins over the other reasons: a connection that TCP had already
+    /// closed is reported as closed, even if the table let it go early.
+    Closed,
+    /// It ran longer than the active timeout; what follows is a new record.
+    ActiveTimeout,
+    /// The table was full and this flow was one of the least recently active,
+    /// so it was ended early to make room.
+    Evicted,
+    /// The replay ended or the sensor stopped while the flow was still open.
+    Stopped,
+}
+
 /// A finished flow: who talked to whom, for how long, and how much.
 /// "fwd" counts packets from the initiator, "rev" packets from the responder.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
@@ -75,4 +96,6 @@ pub struct FlowRecord {
     pub bytes_rev: u64,
     /// Only set for TCP flows.
     pub tcp_outcome: Option<TcpOutcome>,
+    /// Why the record was closed. Not stored in the database yet.
+    pub end: FlowEnd,
 }

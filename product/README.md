@@ -17,14 +17,21 @@ results on a real home network.
 |---|---|---|
 | Network sweep | `sudo nmap -sn 192.168.1.0/24` | one device checks 15 or more local addresses within 60 s |
 | Port scan | `nmap 192.168.1.10` | one device tries 20 or more TCP ports (or 30 UDP ports) of one machine within 60 s |
-| Login attempts | a password-guessing tool against SSH | 10 or more new connections to a login port within 60 s |
+| Login attempts | a password-guessing tool against SSH | 10 or more connections to a login port of a device in your network within 60 s that were refused or closed within 30 s (a session that stays open never counts) |
 | Known attack patterns | anything Suricata's rules recognise | read from Suricata's `eve.json`, if Suricata is installed |
 
-Alerts from the same device become one **incident** as long as the gaps
-between them stay under 30 minutes. An incident that goes through two attack
-stages (for example discovery, then password guessing) is raised one
-severity level, because that looks like an attack in progress. The thresholds
-are in [`core/crates/flagman-core/src/detect/config.rs`](core/crates/flagman-core/src/detect/config.rs).
+Alerts about the same device become one **incident** as long as the gaps
+between them stay under 30 minutes. That device is the one behind the alerts
+(the scanner, the password guesser), except for a Suricata alert on traffic
+from the internet to one of your devices: that one is filed under your
+device. An incident that goes through two attack stages (for example
+discovery, then password guessing) is raised one severity level, because
+that looks like an attack in progress. The thresholds are in
+[`core/crates/flagman-core/src/detect/config.rs`](core/crates/flagman-core/src/detect/config.rs).
+
+Memory is bounded. If a flood of fake addresses fills it, Flagman forgets the
+least active entries to make room, so a real scanner is still seen, and the
+dashboard shows **Detector saturated**.
 
 ## Try it in five minutes, without a network
 
@@ -45,8 +52,8 @@ It prints what it found (this is real output):
 ```text
 Replayed lab-attack-chain.pcap: 2676 packets (0 unreadable) in … s.
 1 incident found:
-  #1 critical from 192.168.77.66, 2026-11-26 18:09:31 UTC to 2026-11-26 18:09:41 UTC
-      login attempts on 192.168.77.10 port 22: 16 connections [high]
+  #1 critical, host 192.168.77.66, 2026-11-26 18:09:31 UTC to 2026-11-26 18:09:41 UTC
+      login attempts on 192.168.77.10 port 22: 15 connections [high]
       port scan of 192.168.77.10: 1000 ports [medium]
       host sweep: 255 hosts [medium]
 ```

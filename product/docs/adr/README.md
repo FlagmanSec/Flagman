@@ -13,6 +13,9 @@ history.
 | [0005](0005-rules-first-ml-later.md) | Start with rule-based detectors and Suricata; add machine learning later | accepted |
 | [0006](0006-svelte-dashboard-and-charts.md) | Svelte dashboard with hand-made SVG charts and a checked palette | accepted |
 | [0007](0007-api-token-on-localhost.md) | Require a token for the API, even on localhost | accepted |
+| [0008](0008-full-tables-forget-the-least-active.md) | A full table forgets its least active entries, never the newcomer | accepted |
+| [0009](0009-login-attempts-from-finished-connections.md) | Judge login attempts by how each connection ended | accepted |
+| [0010](0010-suricata-alerts-filed-under-the-home-device.md) | File Suricata alerts from the internet under the home device | accepted |
 
 Template for a new record:
 

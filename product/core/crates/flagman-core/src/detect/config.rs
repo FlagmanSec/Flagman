@@ -45,8 +45,18 @@ impl Default for HostSweepConfig {
 #[serde(default, deny_unknown_fields)]
 pub struct BruteForceConfig {
     pub window_secs: i64,
-    /// New connections to the same login service within the window.
+    /// Failed attempts on the same login service within the window: refused
+    /// connections, or connections closed within `max_attempt_secs`.
     pub min_attempts: usize,
+    /// A connection that stays open longer than this is a working session,
+    /// not a failed attempt. 30 s covers a full round of six wrong passwords
+    /// (17.8 s in the lab recording `lab-ssh-logins.pcap`), with room for
+    /// slower servers.
+    pub max_attempt_secs: i64,
+    /// Only watch login services inside the home network (private addresses).
+    /// Connections from your devices to servers on the internet are then
+    /// never counted, which avoids alerts for git, Ansible or VS Code Remote.
+    pub local_targets_only: bool,
     /// Services that ask for a password.
     pub ports: Vec<u16>,
 }
@@ -56,6 +66,8 @@ impl Default for BruteForceConfig {
         BruteForceConfig {
             window_secs: 60,
             min_attempts: 10,
+            max_attempt_secs: 30,
+            local_targets_only: true,
             // FTP, SSH, Telnet, POP3, IMAP, SMB, MSSQL, MySQL, RDP, PostgreSQL, VNC
             ports: vec![21, 22, 23, 110, 143, 445, 1433, 3306, 3389, 5432, 5900],
         }

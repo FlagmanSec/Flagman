@@ -1,14 +1,22 @@
 //! Groups alerts into incidents.
 //!
-//! Rule: alerts from the same source host belong to the same incident as long
-//! as the gap between them stays under `gap_secs` (30 minutes by default).
+//! Rule: alerts about the same host belong to the same incident as long as
+//! the gap between them stays under `gap_secs` (30 minutes by default).
 //! The incident severity is the highest alert severity, raised one level when
 //! the host moved through two or more ATT&CK tactics (for example discovery,
 //! then credential access), because that looks like an attack in progress.
+//!
+//! "The host" is usually the alert's source: the scanner, the guesser. One
+//! exception: a Suricata alert on traffic that came from the internet to one
+//! of your devices is filed under your device. Suricata rules often match the
+//! answer of a server (for example a web page your PC downloaded), so the
+//! source is then an outside server, and filing the alert under that server
+//! would split one PC's story across many incidents.
 
 use super::model::{Incident, MAX_TARGETS};
-use crate::alert::{Alert, Severity};
+use crate::alert::{Alert, AlertKind, Severity};
 use crate::ids::IdGenerator;
+use crate::net::is_local;
 use crate::time::Timestamp;
 use std::collections::HashMap;
 use std::net::IpAddr;
@@ -37,18 +45,19 @@ impl IncidentEngine {
     /// Adds an alert (new or updated) to its incident and returns the
     /// incident as it is now.
     pub fn on_alert(&mut self, alert: &Alert) -> Incident {
-        let too_old = self.open.get(&alert.src_ip).is_some_and(|open| {
+        let host = incident_host(alert);
+        let too_old = self.open.get(&host).is_some_and(|open| {
             let is_new_alert = !open.alert_severities.contains_key(&alert.id);
             is_new_alert && alert.first_seen.millis_since(open.incident.last_seen) > self.gap_ms
         });
         if too_old {
-            self.open.remove(&alert.src_ip);
+            self.open.remove(&host);
         }
         let ids = &mut self.ids;
         let open = self
             .open
-            .entry(alert.src_ip)
-            .or_insert_with(|| new_incident(ids.next_id(), alert));
+            .entry(host)
+            .or_insert_with(|| new_incident(ids.next_id(), host, alert));
         add_alert(open, alert);
         open.incident.clone()
     }
@@ -62,13 +71,27 @@ impl IncidentEngine {
     }
 }
 
-fn new_incident(id: u64, alert: &Alert) -> OpenIncident {
+/// The host an alert is filed under (see the module comment).
+fn incident_host(alert: &Alert) -> IpAddr {
+    match alert.dst_ip {
+        Some(device)
+            if alert.kind == AlertKind::Signature
+                && !is_local(alert.src_ip)
+                && is_local(device) =>
+        {
+            device
+        }
+        _ => alert.src_ip,
+    }
+}
+
+fn new_incident(id: u64, host: IpAddr, alert: &Alert) -> OpenIncident {
     OpenIncident {
         incident: Incident {
             id,
             first_seen: alert.first_seen,
             last_seen: alert.last_seen,
-            src_ip: alert.src_ip,
+            src_ip: host,
             severity: alert.severity,
             alert_count: 0,
             kinds: Vec::new(),
@@ -94,6 +117,7 @@ fn add_alert(open: &mut OpenIncident, alert: &Alert) {
         incident.tactics.push(attack.tactic.clone());
     }
     if let Some(target) = alert.dst_ip
+        && target != incident.src_ip
         && !incident.targets.contains(&target)
         && incident.targets.len() < MAX_TARGETS
     {
@@ -192,6 +216,52 @@ mod tests {
             "Discovery",
         ));
         assert_eq!(again.alert_count, 1);
+    }
+
+    fn suricata_alert(id: u64, src: &str, dst: &str) -> Alert {
+        Alert {
+            kind: AlertKind::Signature,
+            severity: Severity::High,
+            src_ip: ip(src),
+            dst_ip: Some(ip(dst)),
+            details: AlertDetails::Signature {
+                signature_id: 2_100_498,
+                signature: "GPL ATTACK_RESPONSE id check returned root".to_string(),
+                category: "Potentially Bad Traffic".to_string(),
+                engine: "suricata".to_string(),
+            },
+            attack: None,
+            ..alert(id, AlertKind::Signature, Severity::High, 0, "")
+        }
+    }
+
+    #[test]
+    fn a_suricata_alert_from_the_internet_is_filed_under_the_home_device() {
+        let mut engine = IncidentEngine::new(1_800, IdGenerator::starting_after(0));
+        // The answer of a web server on the internet matched a rule.
+        let first = engine.on_alert(&suricata_alert(1, "203.0.113.7", "192.168.1.10"));
+        assert_eq!(first.src_ip, ip("192.168.1.10"));
+        assert!(
+            first.targets.is_empty(),
+            "the device is the subject, not a target"
+        );
+        // Another server's answer to the same PC joins the same incident.
+        let second = engine.on_alert(&suricata_alert(2, "198.51.100.9", "192.168.1.10"));
+        assert_eq!(second.id, first.id);
+        // Traffic sent by the PC itself is filed under the PC too.
+        let third = engine.on_alert(&suricata_alert(3, "192.168.1.10", "198.51.100.9"));
+        assert_eq!(third.id, first.id);
+        assert_eq!(third.targets, vec![ip("198.51.100.9")]);
+    }
+
+    #[test]
+    fn behaviour_alerts_stay_with_their_source_even_from_the_internet() {
+        let mut engine = IncidentEngine::new(1_800, IdGenerator::starting_after(0));
+        let scan = Alert {
+            src_ip: ip("203.0.113.7"),
+            ..alert(1, AlertKind::PortScan, Severity::Medium, 0, "Discovery")
+        };
+        assert_eq!(engine.on_alert(&scan).src_ip, ip("203.0.113.7"));
     }
 
     #[test]

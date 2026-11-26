@@ -6,7 +6,7 @@
 
 use super::attack;
 use super::config::PortScanConfig;
-use super::tracker::{Finding, Tracker, TrackerConfig};
+use super::tracker::{Evictions, Finding, Tracker, TrackerConfig};
 use crate::alert::{Alert, AlertDetails, AlertKind, Severity};
 use crate::flow::{FlowStart, Protocol, StartKind};
 use crate::ids::IdGenerator;
@@ -76,6 +76,10 @@ impl PortScanDetector {
         for finding in self.udp.expire(now) {
             out.push(self.alert_from(finding, Protocol::Udp));
         }
+    }
+
+    pub fn evictions(&self) -> Evictions {
+        self.tcp.evictions().merge(self.udp.evictions())
     }
 
     fn alert_from(&self, finding: Finding<Key, u16>, protocol: Protocol) -> Alert {

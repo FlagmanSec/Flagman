@@ -89,7 +89,7 @@
     <p class="summary">{formatList(incident.kinds.map((kind) => t(`kind.${kind}`)), fmt())}</p>
     <dl class="facts">
       <div>
-        <dt>{t('incident.from')}</dt>
+        <dt>{t('incident.host')}</dt>
         <dd><IpAddress ip={incident.src_ip} /></dd>
       </div>
       <div>

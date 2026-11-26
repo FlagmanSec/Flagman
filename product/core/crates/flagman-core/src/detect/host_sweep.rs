@@ -9,7 +9,7 @@
 
 use super::attack;
 use super::config::HostSweepConfig;
-use super::tracker::{Finding, Tracker, TrackerConfig};
+use super::tracker::{Evictions, Finding, Tracker, TrackerConfig};
 use crate::alert::{Alert, AlertDetails, AlertKind, Severity, SweepMethod};
 use crate::flow::{FlowStart, StartKind};
 use crate::ids::IdGenerator;
@@ -88,6 +88,10 @@ impl HostSweepDetector {
         for finding in self.tracker.expire(now) {
             out.push(self.alert_from(finding));
         }
+    }
+
+    pub fn evictions(&self) -> Evictions {
+        self.tracker.evictions()
     }
 
     fn alert_from(&self, finding: Finding<Key, IpAddr>) -> Alert {
