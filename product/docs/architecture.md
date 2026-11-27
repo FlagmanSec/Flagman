@@ -152,7 +152,7 @@ It exists only in builds with flagmand's `parquet` feature, off by default
 The same capture always gives the same bytes: packet timestamps drive
 every timeout, and the flow table breaks ties by flow key.
 
-### 7. Labelled data (`product/ml`, Python, phase 3)
+### 7. Labelled data and models (`product/ml`, Python, phase 3)
 
 The Python side reads feature files and never computes a feature. Its
 first job is labelling: each flow takes the class of the dataset
@@ -172,8 +172,27 @@ mapping .toml ──> labels/mapping.py: dataset labels -> Flagman classes
 
 Labels join back to flows by `(source, row)`, and only if the feature
 file's checksum is the one recorded. Dataset files come from
-`flagman_ml/datasets` (size and SHA-256 checked). Models, evaluation and
-reports build on this in the next pull requests
+`flagman_ml/datasets` (size and SHA-256 checked).
+
+The models train on labelled flows, with whole files kept aside for
+calibration ([ADR 0014](adr/0014-two-scores-a-conformal-false-alarm-budget-and-temperature-scaling.md)):
+
+```text
+labelled flows ──> models/data.py: training files | calibration files
+   training ─────> classifier.py: LightGBM ──┐
+   training normal ─> anomaly.py: Isolation Forest
+   calibration ──> classifier.py: temperature ┘
+   calibration normal ─> conformal.py: one threshold per score, at α/2
+                      │
+new flows ──> openset.py: suspicion or anomaly above its threshold = alert
+                          alert + sure attack class = that class
+                          other alert = unknown_suspicious
+          ──> drift.py: alert rate, anomaly scores, features vs calibration
+```
+
+`flagman_ml/audit` looks for testbed fingerprints before training
+(single-feature separability and ablations). The evaluation and the
+reports build on this in the next pull request
 ([handoff](changes/phase-3-toolkit.md)).
 
 ## Threads and shutdown

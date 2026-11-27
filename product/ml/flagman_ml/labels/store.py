@@ -21,15 +21,11 @@ Example::
 
 from __future__ import annotations
 
-import json
 import os
-from pathlib import Path
 
 import pandas as pd
-import pyarrow as pa
-import pyarrow.parquet as pq
 
-from flagman_ml.files import replace_atomically
+from flagman_ml.files import read_table, write_table
 from flagman_ml.flows import Flows
 
 KEY = "flagman.labels"
@@ -41,23 +37,15 @@ class LabelsMismatch(ValueError):
 
 def write_labels(labels: pd.DataFrame, path: str | os.PathLike, provenance: dict) -> None:
     """Write a labels file; the same inputs always give the same bytes."""
-    path = Path(path)
-    path.parent.mkdir(parents=True, exist_ok=True)
-    table = pa.Table.from_pandas(labels, preserve_index=False)
-    table = table.replace_schema_metadata({KEY: json.dumps(provenance, sort_keys=True)})
-    tmp = path.with_name(path.name + ".part")
-    pq.write_table(table, tmp)
-    replace_atomically(tmp, path)
+    write_table(labels, path, KEY, provenance)
 
 
 def read_labels(path: str | os.PathLike) -> tuple[pd.DataFrame, dict]:
     """A labels file and its provenance."""
-    table = pq.read_table(path)
-    metadata = table.schema.metadata or {}
-    if KEY.encode() not in metadata:
+    found = read_table(path, KEY)
+    if found is None:
         raise LabelsMismatch(f"{path}: not a Flagman labels file")
-    provenance = json.loads(metadata[KEY.encode()])
-    return table.replace_schema_metadata(None).to_pandas(), provenance
+    return found
 
 
 def attach_labels(flows: Flows, path: str | os.PathLike) -> pd.DataFrame:

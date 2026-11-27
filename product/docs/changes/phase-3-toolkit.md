@@ -24,8 +24,8 @@ the team when phase 3 starts.
 | 1 | `phase-3/01-features` | #3 (draft) | `flagman-features`, the flow table's extension slot, data size and TTL per packet | done |
 | 2 | `phase-3/02-extract` | #4 (draft) | `flagmand extract` to Parquet, behind an off-by-default cargo feature; ties broken by flow key; byte-identical test; parity test written in the phase 2 plan | done |
 | 3 | `phase-3/03-ml-data` | #5 (draft) | `product/ml`: pinned Python, reading the Parquet, labelling with a mapping file per dataset, time offset finder, download script and manifests, dataset facts | done |
-| 4 | `phase-3/04-models` | – | shortcut audit, LightGBM with calibrated probabilities, Isolation Forest, open-set rule, conformal false-alarm budget, drift monitor | next |
-| 5 | `phase-3/05-evaluation` | – | evaluation harness, Suricata comparison, reports from `results/*.json`, model export and runtime ADR draft, runbook | to do |
+| 4 | `phase-3/04-models` | #6 (draft) | shortcut audit, LightGBM with temperature scaling, Isolation Forest, open-set rule, conformal false-alarm budget, drift monitor, model bundles, ADR 0014 | done |
+| 5 | `phase-3/05-evaluation` | – | evaluation harness, Suricata comparison, reports from `results/*.json`, model export and runtime ADR draft, runbook | next |
 
 ## What is done
 
@@ -99,6 +99,38 @@ the team when phase 3 starts.
   before the first push: the first copies were made by an experimental
   build (same rows, another order).
 
+### 4. Models (`phase-3/04-models`)
+
+- `flagman_ml/models`: `train` splits the labelled flows by file (the
+  `--calibration-file` files are kept aside), trains LightGBM on the
+  others and calibrates its probabilities by temperature scaling on the
+  calibration files (one number for all classes, so a calibration day
+  that holds some attacks only is fine), trains an Isolation Forest on the
+  training files' normal flows, and sets two split conformal thresholds
+  on the calibration files' normal flows, each at α/2: suspicion
+  (1 − P(normal)) and the anomaly score. `predict` writes a decision per
+  flow (`normal`, an attack class, or `unknown_suspicious`) with every
+  probability; `drift` compares a recent window with the calibration
+  flows (binomial test of the alert rate, KS test of the anomaly scores,
+  PSI per feature). Bundles hold the models and `bundle.json` (data
+  checksums, schema, flow table, thresholds, temperature, warnings,
+  library versions, the model file's checksum, checked before loading).
+- `flagman_ml/audit`: single-feature separability (AUC from ranks, every
+  feature against every class, flagged at 0.99, watched features marked)
+  and ablations (macro-F1 on validation files with all features, without
+  the watched ones, without each of the ten most separating flagged ones).
+- `flagman_ml/synthetic.py`: made-up flows with the real schema, for the
+  model tests only.
+- [ADR 0014](../adr/0014-two-scores-a-conformal-false-alarm-budget-and-temperature-scaling.md).
+  Sources read and quoted: Angelopoulos and Bates (arXiv:2107.07511 v6,
+  section 1.1) for the threshold, Guo et al. (ICML 2017, PMLR
+  70:1321-1330, section 4.2) for temperature scaling.
+- Changed from the plan: probabilities are calibrated by temperature
+  scaling, not per class. scikit-learn 1.9.1's `CalibratedClassifierCV`
+  takes its classes from the calibration labels and failed on the lab
+  files (no scan in the calibration file); with splits by day, that is
+  the usual case.
+
 ## What is tested
 
 | Pull request | Tests |
@@ -106,27 +138,22 @@ the team when phase 3 starts.
 | 1 | 7 new in `flagman-core` (data size: whole, cut by the capture, padding, UDP, IPv6, broken length field; the extension slot: every packet in order, evicted flows), 22 in `flagman-features`: a worked example by hand, 8 shortcut tests (addresses, IPv6, ports, steady TTL, TTL change, link layer, clock time, TCP options), memory per flow, schema and README in step. All 93 earlier Rust tests unchanged and passing |
 | 2 | 5 new in `flagman-core` (ties: same end order on every run, the same flow ended when a full table has equally old flows, both failing without the tie-break; end reason names; an engine with an extension gives the same flows and alerts as the sensor's; the live/replay difference after a silence), 6 in `flagman-parquet` (columns in schema order, footer, values and nulls read back, same rows same bytes, row groups, empty file), 1 command-line test, and with `--features parquet` 4 in `flagmand` (the extracted flows are exactly the sensor's flows on the three lab captures, one row per flow, no file left after a failure, no overwrite without `--overwrite`) and `tests/extract.rs` (the program run twice on each lab capture gives byte-identical files; without the tie-break the attack chain gave different files 3 times out of 3). 134 tests without the feature, 139 with it, plus 1 ignored. pyarrow 26.0.1 reads the files (checked by hand; the Python tests come with pull request 3) |
 | 3 | 79 Python tests, in under 3 s: reading (one row per flow, inputs are only the features, fixed categories, files stacked with their names; refusals: unknown schema version, missing footer, unknown kind, same file name, other flow table settings, a category outside the schema), matching on tiny examples (either direction, empty ports, exact conversations, protocol, tolerance, offset, most specific wins, longest overlap wins, no match), the four readers on hand-written samples, mapping files (all repository files load, patterns in order, every unknown label listed, five kinds of mistakes), labelling the lab (1,000 scan, 28 brute_force, 53 normal, no conflict; 2 conflicts with 1 s of tolerance, same labels), the offset finder (a 3-hour shift found, no other offset matches), labels files (join back, provenance, same bytes twice, refusal of a changed feature file), the commands, manifests (all load, unsafe entries refused, selection) and downloads from a local web server (checked download, resume, server without ranges, wrong checksum, no checksum without `--record`, file already there, the 20 GB guard, the disk check). Rust tests unchanged |
+| 4 | 66 new Python tests (145 in all, about 7 s): the conformal threshold (the k-th smallest score by hand, the paper's quantile, too few flows means no alert, the smallest calibration set, the false-alarm rate over 400 repetitions within the budget, a shifted network above it, α checked), the split by file, the forest's matrix, LightGBM with temperature scaling (probabilities sum to 1, the top class never changes, a too-sure model is softened, two classes, refusals, same data same model), the forest (attacks score higher), each branch of the decision, PSI, the alert-rate and score tests, the drift report, bundles (round trip, changed file refused, other library versions warn), training on made-up flows (report, the false-alarm rate on new normal flows under 7% for a 5% budget, known attacks named, an unseen attack still alerts, huge uploads called normal by the classifier come out `unknown_suspicious`, too few calibration flows, no normal calibration flow refused), predictions (columns, refusals of another flow table or schema), separability (the rank formula against scikit-learn with ties, a planted watched fingerprint flagged, categories), ablations (macro-F1 falls from 1.0 when the planted feature is removed), and the commands on the lab files (pipeline checks). Rust tests unchanged |
 
 ## What is left, in order
 
-1. **Models** (`phase-3/04-models`): the shortcut audit (how well each
-   feature alone separates the classes, and ablations without the features
-   of `schema.watched()`; flag possible testbed fingerprints), LightGBM
-   with calibrated probabilities, Isolation Forest trained on normal
-   traffic only, the open-set rule (low confidence and high anomaly score
-   give "unknown suspicious"), the split conformal threshold (the
-   ⌈(n+1)(1−α)⌉-th smallest calibration score; the bound holds only when
-   traffic is exchangeable, never "guaranteed") and the drift monitor. They
-   train on `attach_labels(read_flows(...), labels)` and leave out
-   `NOT_SCORED` classes.
-2. **Evaluation** (`phase-3/05-evaluation`): splits by day or session,
+1. **Evaluation** (`phase-3/05-evaluation`): splits by day or session,
    leave-one-attack-type-out, cross-dataset holdouts, detection at fixed
-   false-alarm rates, precision at a realistic base rate, ECE, observed
-   against configured budget, per-class F1, alerts per day, mean ± std,
-   paired tests; the Suricata comparison (a hand-written EVE file if none
-   can be recorded); reports from `results/*.json`; model export and the
-   runtime ADR draft; the runbook.
-3. **Checks when the data is downloaded** (by the team; this session's
+   false-alarm rates (0.1%, 0.5%, 1%), precision at a realistic base rate,
+   ECE (Guo et al. use 15 equal-width bins), observed against configured
+   budget, per-class F1, macro-F1, alerts per day, mean ± std over seeds,
+   paired tests; the Suricata comparison (`suricata -r` with ET Open; a
+   hand-written EVE file, labelled so, if none can be recorded); reports
+   from `results/*.json`; model export (LightGBM text, ONNX if it works)
+   and the runtime ADR draft; the runbook. They build on
+   `flagman_ml.models` (`predict` writes every probability, for ECE) and
+   read the bundles' `bundle.json`.
+2. **Checks when the data is downloaded** (by the team; this session's
    network could not reach the dataset servers): record every SHA-256 in
    the manifests; check the UNSW-NB15 ground truth's name, columns and time
    format; read the Engelen et al. download page and finish
@@ -167,6 +194,25 @@ the team when phase 3 starts.
 - Labelling holds one feature file's flows and the ground-truth records of
   its time span in memory at once; very large single files have not been
   tried.
+- The models were only run on made-up flows and the 1,081 lab flows. On
+  the lab files the pipeline check runs, and shows nothing more: 11 normal
+  calibration flows, unlike the training ones, so the thresholds are the
+  largest calibration scores and most scans pass as normal. Their
+  run time and memory on a real dataset are not measured.
+- The false-alarm budget holds on average for normal traffic exchangeable
+  with the calibration traffic; it is never a guarantee for a real
+  network. The union bound (α/2 per score) is cautious.
+- An attack never seen in training can get a known class with high
+  confidence (made-up floods come out as `scan`); leave-one-attack-type-out
+  evaluation measures it.
+- Temperature scaling is set on the classes the calibration files hold,
+  and cannot fix one class's calibration alone.
+- Model bundles are joblib files, which run code when loaded: load only
+  this project's own bundles. The library versions must match
+  `requirements.txt` (a warning says when they differ).
+- The drift monitor's limits (p-value 0.01, PSI 0.2) are starting points,
+  not standards. Its alert-rate test assumes the window is mostly normal
+  traffic.
 
 ## Files to review first
 
@@ -198,6 +244,17 @@ Pull request 3:
 5. `ml/flagman_ml/datasets/download.py` with `download_test.py`
 6. `.github/workflows/product-ci.yml` (the Python job, the freshness step)
 
+Pull request 4:
+
+1. [ADR 0014](../adr/0014-two-scores-a-conformal-false-alarm-budget-and-temperature-scaling.md)
+2. `ml/flagman_ml/models/README.md`, then `conformal.py` with
+   `conformal_test.py`
+3. `ml/flagman_ml/models/openset.py` with `openset_test.py`
+4. `ml/flagman_ml/models/classifier.py` (temperature scaling) and
+   `train.py` with `train_test.py`
+5. `ml/flagman_ml/audit/README.md`, `separability.py`, `ablation_test.py`
+6. `ml/flagman_ml/models/drift.py` (the limits to tune)
+
 ## Prompt for the next session
 
 ```text
@@ -213,6 +270,6 @@ downloads under ~5 GB. Python lives in product/ml (python -m pytest
 there, Python 3.13, requirements.txt pinned). Every push includes a
 context .docx and its .md copy in product/docs/context/. Never merge; open draft pull requests, each
 branch based on the previous one (phase-3/NN-name). Continue with the
-first item of "What is left", and update this file with every pull
-request.
+first item of "What is left" (evaluation, on branch phase-3/05-evaluation
+from phase-3/04-models), and update this file with every pull request.
 ```

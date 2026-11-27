@@ -76,7 +76,7 @@ On the phase 3 branches only, until phase 3 starts. Read
 | 8 | `flagman-parquet/README.md`, `src/columns.rs`, `src/writer.rs` | the columns of a feature file, its footer, and why the same capture gives the same bytes |
 | 9 | `flagman-core/src/flow/table.rs` (`in_start_order`, `make_room`) and `flagmand/tests/extract.rs` | ties broken by flow key; two runs of the program compared byte for byte |
 
-## 7. Phase 3: labelled data, in Python (40 minutes)
+## 7. Phase 3: labelled data and models, in Python (1 hour 15 minutes)
 
 On the phase 3 branches only. Everything is in [`ml/`](../ml/README.md);
 run `python -m pytest` there as you read.
@@ -90,3 +90,9 @@ run `python -m pytest` there as you read.
 | 14 | `ml/flagman_ml/labels/label.py`, `store.py`, `offset.py` | the labels file and its provenance; finding a time offset |
 | 15 | `ml/data/README.md` | each dataset: what is verified, its terms, how to cite it |
 | 16 | `ml/flagman_ml/datasets/download.py` | downloads that resume, check SHA-256, and refuse 20 GB without a yes |
+| 17 | `ml/flagman_ml/models/conformal.py`, then `conformal_test.py` | the false-alarm budget: the threshold is one calibration score, picked by rank |
+| 18 | `ml/flagman_ml/models/openset_test.py`, then `openset.py` | the decision for each flow, including `unknown_suspicious` |
+| 19 | `ml/flagman_ml/models/classifier.py`, `anomaly.py` | LightGBM with temperature scaling; the Isolation Forest on normal flows |
+| 20 | `ml/flagman_ml/models/train.py`, then `train_test.py` | the whole chain on made-up flows, with an attack the models never saw |
+| 21 | `ml/flagman_ml/audit/separability.py`, `ablation_test.py` | the shortcut audit: one feature that alone separates a class, and the drop without it |
+| 22 | `docs/adr/0014-two-scores-a-conformal-false-alarm-budget-and-temperature-scaling.md` | why two scores, why α/2 each, why temperature scaling |

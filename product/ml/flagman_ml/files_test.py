@@ -1,4 +1,6 @@
-from flagman_ml.files import replace_atomically, sha256_of
+import pandas as pd
+
+from flagman_ml.files import read_table, replace_atomically, sha256_of, write_table
 
 
 def test_the_checksum_names_the_exact_bytes(tmp_path):
@@ -18,3 +20,13 @@ def test_a_finished_file_replaces_the_old_one(tmp_path):
     replace_atomically(tmp, final)
     assert final.read_text() == "new"
     assert not tmp.exists()
+
+
+def test_a_table_keeps_its_provenance_under_its_own_key(tmp_path):
+    path = tmp_path / "table.parquet"
+    write_table(pd.DataFrame({"row": [0, 1]}), path, "flagman.example", {"made_by": "a test"})
+    table, provenance = read_table(path, "flagman.example")
+    assert table["row"].tolist() == [0, 1]
+    assert provenance == {"made_by": "a test"}
+    assert read_table(path, "flagman.other") is None  # another kind of file
+    assert not (tmp_path / "table.parquet.part").exists()
