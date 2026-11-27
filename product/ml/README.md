@@ -18,7 +18,7 @@ Python 3.13, from this folder:
 python3.13 -m venv .venv
 . .venv/bin/activate
 python -m pip install -r requirements.txt   # exact versions, see the file
-python -m pytest                             # about 200 tests, about 10 seconds
+python -m pytest                             # about 210 tests, about 15 seconds
 ```
 
 Run every command from this folder (`product/ml`): the code is not
@@ -32,6 +32,8 @@ installed as a package.
 | `data/` | the datasets: licences, sizes, citations, mapping files and download manifests ([README](data/README.md)) |
 | `fixtures/` | small real files for the tests, made from the lab captures ([README](fixtures/README.md)) |
 | `plans/` | evaluation plans: which files train, calibrate and test ([README](plans/README.md)) |
+| `docs/` | the [runbook](docs/runbook.md): the full campaign on a small Linux VM ([README](docs/README.md)) |
+| `experiments/` | small measurements behind ADR 0015 and the runbook ([README](experiments/README.md)) |
 | `requirements.txt` | every Python package, pinned to one version |
 | `pyproject.toml` | settings of the test runner |
 | `results/` | outputs (labels, models, reports); never committed, rebuilt by the commands |
@@ -96,7 +98,14 @@ python -m flagman_ml.evaluation --plan plans/my-plan.toml
 # 8. The report, written only from the results JSON files
 python -m flagman_ml.reports --evaluation results/evaluation/my-plan \
     --audit results/audit/my-data.json --out results/reports/my-plan.md
+
+# 9. The classifier for a runtime outside Python, checked on feature files
+python -m flagman_ml.export --model results/models/lab \
+    --out results/export/lab --check fixtures/lab-*.parquet
 ```
+
+For a whole dataset on a small VM (disk, time, memory, resuming after a
+crash), follow the [runbook](docs/runbook.md).
 
 The three lab files cannot make a fold (training, calibration and test
 files, each with normal traffic), so the evaluation's tests run a plan on
@@ -123,6 +132,10 @@ captures, with two local rules instead of ET Open
    same captures, scored the same way.
 9. [`flagman_ml/reports/`](flagman_ml/reports/README.md): reports from
    results files only.
+10. [`flagman_ml/export/`](flagman_ml/export/README.md): the classifier for
+    a runtime outside Python, and
+    [ADR 0015 (draft)](../docs/adr/0015-model-runtime.md) with
+    [`experiments/model-runtime`](experiments/model-runtime/README.md).
+11. [`docs/runbook.md`](docs/runbook.md): the full campaign, step by step.
 
-The model export and the runbook come next: see
-[the handoff](../docs/changes/phase-3-toolkit.md).
+What is left for the team is in [the handoff](../docs/changes/phase-3-toolkit.md).

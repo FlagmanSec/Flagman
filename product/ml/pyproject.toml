@@ -11,7 +11,7 @@ requires-python = ">=3.13"
 [tool.pytest.ini_options]
 # Tests sit next to the code they test, in files ending in _test.py.
 pythonpath = ["."]
-testpaths = ["flagman_ml"]
+testpaths = ["flagman_ml", "experiments"]
 python_files = ["*_test.py"]
 addopts = "-q --strict-markers"
 # A warning is a failure: fix it or say why it is accepted.

@@ -76,6 +76,19 @@ starts. Details: [docs/changes/phase-3-toolkit.md](docs/changes/phase-3-toolkit.
   counted), and scored in the evaluation as a fourth way of deciding.
   Test files recorded with Suricata 7.0.3 on the lab captures, with two
   local rules (ET Open was out of reach).
+- `python -m flagman_ml.export`: the classifier in LightGBM's own text
+  format (`classifier.txt`), with `export.json` (inputs in order, category
+  codes, classes, temperature, thresholds, checksums); `--check` reloads it
+  and compares its raw scores with the bundle's.
+- `ml/experiments/model-runtime`: small measurements of three ways to run
+  the classifier outside Python (LightGBM's C API, generated C code, ONNX
+  Runtime), and a CI test that the generated code and the C API give
+  exactly LightGBM's raw scores; ADR 0015, a draft for the team to decide
+  ([docs/adr/0015-model-runtime.md](docs/adr/0015-model-runtime.md)).
+- `ml/docs/runbook.md`: how to run the full campaign on a Linux VM with 2
+  to 4 CPUs and 1 to 8 GB of memory, with the disk, time and memory
+  measured on small runs (`ml/experiments/campaign-sizing`), where the
+  results go, and how to continue after a crash.
 
 ### Changed (phase 3 toolkit)
 

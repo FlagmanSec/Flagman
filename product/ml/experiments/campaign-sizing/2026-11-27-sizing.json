@@ -1,0 +1,79 @@
+{
+  "capture": {
+    "copies": 320,
+    "of": [
+      "lab-normal-traffic.pcap",
+      "lab-attack-chain.pcap",
+      "lab-ssh-logins.pcap"
+    ],
+    "packets": 1224000
+  },
+  "extract": {
+    "capture_bytes": 102096344,
+    "feature_file_bytes": 1430419,
+    "feature_file_bytes_per_flow": 4.135115055504163,
+    "flows": 345920,
+    "megabytes_per_second": 48.322973757614015,
+    "pandas_bytes_per_flow": 384.123777173913,
+    "peak_rss_mb": 102.62109375,
+    "seconds": 2.112790998999998
+  },
+  "lab_feature_files": {
+    "bytes": 55411,
+    "bytes_per_flow": 51.25901942645699,
+    "files": [
+      "lab-attack-chain.parquet",
+      "lab-normal-traffic.parquet",
+      "lab-ssh-logins.parquet"
+    ],
+    "flows": 1081
+  },
+  "machine": {
+    "cpus": 4,
+    "system": "Linux-6.18.44-fc-v880-x86_64-with-glibc2.39"
+  },
+  "note": "a pipeline check (repeated lab captures, made-up training flows), not a result",
+  "suricata": {
+    "eve_bytes": 419417238,
+    "eve_events": {
+      "alert": 331200,
+      "flow": 345920,
+      "ssh": 10880,
+      "stats": 1
+    },
+    "files_bytes": {
+      "console.txt": 350,
+      "eve.json": 419417238,
+      "fast.log": 69584960,
+      "run.json": 954,
+      "stats.log": 5361,
+      "suricata.log": 2352
+    },
+    "rules": "local.rules",
+    "seconds": 8.391355363000002,
+    "suricata": "This is Suricata version 7.0.3 RELEASE"
+  },
+  "training": [
+    {
+      "calibration_flows": 25000,
+      "peak_rss_mb": 470.859375,
+      "seconds_to_make_flows": 0.3510126029999867,
+      "seconds_to_train": 9.09744203400001,
+      "train_flows": 100000
+    },
+    {
+      "calibration_flows": 75000,
+      "peak_rss_mb": 632.12109375,
+      "seconds_to_make_flows": 0.9362632689999941,
+      "seconds_to_train": 15.738905426000002,
+      "train_flows": 300000
+    },
+    {
+      "calibration_flows": 250000,
+      "peak_rss_mb": 1422.28515625,
+      "seconds_to_make_flows": 2.763544207999985,
+      "seconds_to_train": 56.885828379,
+      "train_flows": 1000000
+    }
+  ]
+}

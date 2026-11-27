@@ -215,8 +215,19 @@ capture.pcap ──> flagmand extract ──────────────
                                                                      └─> evaluation/run.py
 ```
 
-The model export and the runbook come next
-([handoff](changes/phase-3-toolkit.md)).
+`flagman_ml/export` writes the trained classifier for a runtime outside
+Python: LightGBM's text model and `export.json` (inputs, category codes,
+classes, temperature, thresholds). How the sensor will run it is still
+open: [ADR 0015](adr/0015-model-runtime.md) is a draft that measured three
+ways, and nothing in the sensor uses a model yet.
+
+```text
+model bundle ──> export/ ──> classifier.txt + export.json ──> a runtime in flagmand (later:
+                                                              generated code, the C API or ONNX)
+```
+
+[`ml/docs/runbook.md`](../ml/docs/runbook.md) runs all of the above on a
+whole dataset.
 
 ## Threads and shutdown
 
