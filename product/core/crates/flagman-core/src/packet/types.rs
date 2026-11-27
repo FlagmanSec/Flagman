@@ -81,6 +81,15 @@ pub struct IpPacket {
     pub src: IpAddr,
     pub dst: IpAddr,
     pub transport: Transport,
+    /// IPv4 time-to-live or IPv6 hop limit. The detectors ignore it; the
+    /// feature builder only notes whether it changes inside a flow, because
+    /// the raw value says which system sent the packet and how many routers
+    /// it crossed: a classic lab shortcut.
+    pub ttl: u8,
+    /// Bytes of application data after the IP and transport headers, read
+    /// from the headers' length fields, so it is right even when the capture
+    /// kept only the first bytes of the packet.
+    pub payload_len: u32,
 }
 
 /// ARP request ("who has 192.168.1.7?") or reply ("192.168.1.7 is at aa:bb:...").

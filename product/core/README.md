@@ -18,6 +18,7 @@ flagmand ──▶ flagman-capture ──┐
 | [`flagman-store`](crates/flagman-store/README.md) | SQLite: writes results, answers the dashboard's questions |
 | [`flagman-api`](crates/flagman-api/README.md) | The HTTP API and the dashboard files, behind a token |
 | [`flagmand`](crates/flagmand/README.md) | The program: command line, threads, configuration |
+| [`flagman-features`](crates/flagman-features/README.md) | Phase 3: per-flow features for machine learning, computed inside the flow table. Not used by the sensor yet |
 
 `testdata/pcap/` holds real lab captures used by the end-to-end tests
 ([its README](testdata/pcap/README.md) explains every number).

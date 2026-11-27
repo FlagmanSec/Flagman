@@ -50,7 +50,9 @@ The engine is pure logic: no network, no disk, no clock. Time comes from
 packet timestamps. This makes every rule testable with hand-made packets,
 and makes replay behave exactly like live capture.
 
-- **Decode** (`packet/decode.rs`): addresses, ports, TCP flags, ARP.
+- **Decode** (`packet/decode.rs`): addresses, ports, TCP flags, ARP, and
+  each packet's data size and TTL, which only the feature builder uses
+  (`packet/lengths.rs`).
 - **Flow meter** (`flow/table.rs`): groups packets into conversations. A
   flow ends when TCP closes it, after a quiet period (120 s TCP, 60 s UDP,
   30 s other), or after 300 s for long transfers. At most 100,000 flows are
@@ -117,6 +119,18 @@ The dashboard is a Svelte app compiled to static files
 ([ADR 0006](adr/0006-svelte-dashboard-and-charts.md)). It refreshes the
 overview every 10 seconds, the other pages every 15 seconds (once a minute
 in replay mode, where nothing changes), and the health strip every 5 seconds.
+
+### 6. Features for machine learning (`flagman-features`, phase 3)
+
+Not used by the sensor yet. The flow table can keep extra state next to
+each flow (`FlowTable<X>`, `flow/extra.rs`): the sensor's table keeps
+nothing (`FlowTable<()>`), while `FlowTable<FeatureState>` keeps running
+statistics per flow and hands out a feature vector (37 numbers and
+categories) when the flow ends. Because the same table computes them, the
+features are the same in live capture and in replay. Addresses, exact
+ports, clock times and raw TTL are never features
+([ADR 0012](adr/0012-features-computed-inside-the-flow-table.md), and the
+[crate README](../core/crates/flagman-features/README.md)).
 
 ## Threads and shutdown
 

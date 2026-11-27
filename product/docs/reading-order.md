@@ -58,3 +58,17 @@ In `ui/src/`:
 
 [`../deploy/linux/README.md`](../deploy/linux/README.md), then
 [`home-test.md`](home-test.md).
+
+## 6. Phase 3: features for machine learning (30 minutes)
+
+On the phase 3 branches only, until phase 3 starts. Read
+[ADR 0012](adr/0012-features-computed-inside-the-flow-table.md) first.
+
+| Step | File | What to look for |
+|---|---|---|
+| 1 | `flagman-core/src/flow/extra.rs` | the slot for extra per-flow state; the sensor's `()` keeps nothing |
+| 2 | `flagman-core/src/packet/lengths.rs` | a packet's data size, read from its headers even when the capture cut it |
+| 3 | `flagman-features/README.md` | the 37 features, and every value left out on purpose and why |
+| 4 | `flagman-features/src/stats.rs`, `direction.rs`, `state.rs` | statistics updated packet by packet, in constant memory |
+| 5 | `flagman-features/src/features.rs`, `schema.rs` | the finished vector, its names, units and version |
+| 6 | `flagman-features/tests/worked_example.rs`, `shortcuts.rs` | a conversation worked out by hand; lab leftovers that must not change a feature |

@@ -8,7 +8,12 @@
 //! When the table is full, a new flow is never refused: the table first ends
 //! the least recently active tenth of its flows. A flood of fake connections
 //! therefore pushes out other idle entries, not the next real connection.
+//!
+//! A table can keep extra state next to each flow (see [`FlowExtra`]): the
+//! sensor's table keeps nothing (`FlowTable<()>`), the feature builder keeps
+//! its statistics there.
 
+use super::extra::{FlowExtra, FlowPacket};
 use super::key::{Endpoint, FlowKey, Protocol, endpoints_of};
 use super::record::{FlowEnd, FlowRecord, FlowStart, StartKind, TcpOutcome};
 use crate::packet::{IcmpKind, IpPacket, TcpFlags, Transport};
@@ -89,13 +94,18 @@ impl TcpProgress {
     }
 }
 
-struct FlowState {
+struct FlowState<X> {
     record: FlowRecord,
     tcp: TcpProgress,
+    extra: X,
 }
 
-impl FlowState {
-    fn add(&mut self, ts: Timestamp, wire_len: u32, forward: bool, flags: Option<TcpFlags>) {
+impl<X: FlowExtra> FlowState<X> {
+    fn add(&mut self, ts: Timestamp, wire_len: u32, forward: bool, packet: &IpPacket) {
+        let flags = match packet.transport {
+            Transport::Tcp { flags, .. } => Some(flags),
+            _ => None,
+        };
         self.record.last_seen = self.record.last_seen.max(ts);
         if forward {
             self.record.packets_fwd += 1;
@@ -107,6 +117,13 @@ impl FlowState {
         if let Some(flags) = flags {
             self.tcp.note(forward, flags);
         }
+        let packet = FlowPacket {
+            ts,
+            forward,
+            ip: packet,
+            record: &self.record,
+        };
+        self.extra.add_packet(&packet);
     }
 
     /// Why the flow should end at `now`, or `None` while it is still alive.
@@ -139,22 +156,36 @@ impl FlowState {
         }
         record
     }
+
+    /// Ends the flow: its final record, with the extra state's result.
+    fn end(&mut self, reason: FlowEnd) -> X::Finished {
+        let record = self.finish(reason);
+        std::mem::take(&mut self.extra).finish(record)
+    }
 }
 
 /// When the table is full, it ends this share of its flows at once (1/10),
 /// so the cost of choosing them is paid rarely.
 const EVICT_SHARE: usize = 10;
 
-/// The table of live flows.
-pub struct FlowTable {
+/// The table of live flows, with an `X` kept next to each one.
+pub struct FlowTable<X = ()> {
     config: FlowTableConfig,
-    flows: HashMap<FlowKey, FlowState>,
+    flows: HashMap<FlowKey, FlowState<X>>,
     evicted: u64,
     last_eviction: Option<Timestamp>,
 }
 
-impl FlowTable {
-    pub fn new(config: FlowTableConfig) -> FlowTable {
+impl FlowTable<()> {
+    /// The sensor's table: nothing extra per flow, finished flows are records.
+    pub fn new(config: FlowTableConfig) -> FlowTable<()> {
+        FlowTable::with_extra(config)
+    }
+}
+
+impl<X: FlowExtra> FlowTable<X> {
+    /// A table that keeps an `X` next to each flow (see [`FlowExtra`]).
+    pub fn with_extra(config: FlowTableConfig) -> FlowTable<X> {
         FlowTable {
             config,
             flows: HashMap::new(),
@@ -172,17 +203,13 @@ impl FlowTable {
         ts: Timestamp,
         wire_len: u32,
         packet: &IpPacket,
-        ended: &mut Vec<FlowRecord>,
+        ended: &mut Vec<X::Finished>,
     ) -> Option<FlowStart> {
         let (protocol, src, dst) = endpoints_of(packet);
-        let flags = match packet.transport {
-            Transport::Tcp { flags, .. } => Some(flags),
-            _ => None,
-        };
         let key = FlowKey::new(protocol, src, dst);
         if let Some(state) = self.flows.get_mut(&key) {
             let forward = state.record.initiator == src;
-            state.add(ts, wire_len, forward, flags);
+            state.add(ts, wire_len, forward, packet);
             return None;
         }
 
@@ -199,37 +226,38 @@ impl FlowTable {
         let mut state = FlowState {
             record: new_record(ts, protocol, src, dst),
             tcp: TcpProgress::default(),
+            extra: X::default(),
         };
-        state.add(ts, wire_len, true, flags);
+        state.add(ts, wire_len, true, packet);
         self.flows.insert(key, state);
         Some(start)
     }
 
     /// Removes and returns the flows that have ended by `now`, oldest first.
-    pub fn expire(&mut self, now: Timestamp) -> Vec<FlowRecord> {
+    pub fn expire(&mut self, now: Timestamp) -> Vec<X::Finished> {
         let config = &self.config;
         let mut ended = Vec::new();
         self.flows
             .retain(|_, state| match state.end_reason(now, config) {
                 Some(reason) => {
-                    ended.push(state.finish(reason));
+                    ended.push(state.end(reason));
                     false
                 }
                 None => true,
             });
-        ended.sort_by_key(|record| record.first_seen);
+        ended.sort_by_key(|flow| X::record(flow).first_seen);
         ended
     }
 
     /// Removes and returns every flow (used at the end of a replay).
-    pub fn drain(&mut self) -> Vec<FlowRecord> {
-        let mut ended: Vec<FlowRecord> = self
+    pub fn drain(&mut self) -> Vec<X::Finished> {
+        let mut ended: Vec<X::Finished> = self
             .flows
-            .values()
-            .map(|state| state.finish(FlowEnd::Stopped))
+            .values_mut()
+            .map(|state| state.end(FlowEnd::Stopped))
             .collect();
         self.flows.clear();
-        ended.sort_by_key(|record| record.first_seen);
+        ended.sort_by_key(|flow| X::record(flow).first_seen);
         ended
     }
 
@@ -244,7 +272,7 @@ impl FlowTable {
     }
 
     /// Ends the least recently active tenth of the flows (at least one).
-    fn make_room(&mut self, now: Timestamp, ended: &mut Vec<FlowRecord>) {
+    fn make_room(&mut self, now: Timestamp, ended: &mut Vec<X::Finished>) {
         let count = (self.config.max_flows / EVICT_SHARE).clamp(1, self.flows.len().max(1));
         let mut by_last_packet: Vec<(Timestamp, FlowKey)> = self
             .flows
@@ -257,13 +285,13 @@ impl FlowTable {
         }
         let first_new = ended.len();
         for (_, key) in by_last_packet {
-            if let Some(state) = self.flows.remove(&key) {
-                ended.push(state.finish(FlowEnd::Evicted));
+            if let Some(mut state) = self.flows.remove(&key) {
+                ended.push(state.end(FlowEnd::Evicted));
                 self.evicted += 1;
                 self.last_eviction = Some(now);
             }
         }
-        ended[first_new..].sort_by_key(|record| record.first_seen);
+        ended[first_new..].sort_by_key(|flow| X::record(flow).first_seen);
     }
 }
 

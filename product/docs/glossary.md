@@ -67,6 +67,18 @@ Sorted by theme, then alphabetically.
 | **Token** | A long random secret in the dashboard link. Without it, the API answers "401 Unauthorized". |
 | **WAL** | SQLite's write-ahead log: lets the dashboard read while the sensor writes. |
 
+## Machine learning (phase 3)
+
+| Word | Meaning |
+|---|---|
+| **Feature** | One number or category that describes a flow, such as its duration or how many packets each side sent. A model learns from features only. |
+| **Feature vector** | All the features of one flow, in a fixed order (37 in schema version 1). |
+| **Feature schema** | The list of features with their names, units and types, and a version number stored with every file of features, so a model always knows what it was trained on. |
+| **Shortcut (lab shortcut)** | A detail of how a dataset was recorded that happens to separate attacks from normal traffic, such as the TTL value `sttl = 254` in UNSW-NB15, which the CS395 model learned (39.6% false alarms). A model that learns a shortcut looks good in the lab and raises false alarms elsewhere. |
+| **Data bytes (payload)** | The application's bytes inside a packet, after the IP and TCP or UDP headers. Flagman reads their size from the headers, even when it kept only the first 160 bytes of the packet. |
+| **Metadata column** | A value kept next to the features (addresses, ports, times) to label flows and split data by day, never used as a model input. |
+| **Running statistics** | A mean and standard deviation updated one value at a time (Welford's method), so no list of packets is ever kept. |
+
 ## Product names
 
 | Word | Meaning |
