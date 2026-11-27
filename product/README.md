@@ -40,7 +40,7 @@ The repository includes a real nmap attack, recorded in an isolated lab
 (see [`core/testdata/pcap/README.md`](core/testdata/pcap/README.md)).
 
 ```bash
-sudo apt install build-essential libpcap-dev nodejs npm   # once
+# once: build tools, Rust and Node.js 20.19+ (see deploy/linux/README.md)
 cd product/ui && npm ci && npm run build && cd ..          # the dashboard
 cd core
 cargo run --release -p flagmand -- replay testdata/pcap/lab-attack-chain.pcap \
