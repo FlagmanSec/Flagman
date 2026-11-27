@@ -12,8 +12,12 @@ Files in this folder:
 
 ```bash
 # 1. Build tools (once)
-sudo apt install build-essential libpcap-dev nodejs npm
-curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh   # Rust, from rustup.rs
+sudo apt update
+sudo apt install -y build-essential pkg-config libpcap-dev git curl
+curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y   # Rust
+source "$HOME/.cargo/env"
+curl -fsSL https://deb.nodesource.com/setup_22.x | sudo -E bash -          # Node.js 22
+sudo apt install -y nodejs
 
 # 2. Build, install and start
 cd product/deploy/linux
@@ -24,8 +28,12 @@ The last lines printed are the dashboard link, for example
 `http://127.0.0.1:8750/#token=…`. Open it in a browser on the same machine.
 The link contains the access token, so do not share it.
 
-Node.js 20 or newer is needed for the dashboard. If your distribution's
-`nodejs` is older, install a current one from [nodejs.org](https://nodejs.org).
+The dashboard needs Node.js 20.19 or newer. Ubuntu's own `nodejs` package is
+older (18 on Ubuntu 24.04), hence the NodeSource repository above. If you
+already installed Ubuntu's `nodejs` and `npm`, remove them first with
+`sudo apt remove nodejs npm`. Node installed with `nvm` is not found by
+`install.sh`, which builds in a non-interactive shell; without Node, the
+script skips the dashboard.
 
 ## Everyday commands
 
