@@ -63,8 +63,10 @@ def train(
     if normal_held.empty or normal_training.empty:
         raise ValueError("both the training and the calibration files need normal flows: "
                          "the false-alarm budget is set on normal traffic")
-    classifier = fit_classifier(training[names], training["label"], held[names],
-                                held["label"], settings.classifier)
+    # The temperature can only use calibration flows of classes the classifier knows.
+    usable = held[held["label"].isin(set(training["label"]))]
+    classifier = fit_classifier(training[names], training["label"], usable[names],
+                                usable["label"], settings.classifier)
     forest = fit_anomaly(anomaly_matrix(normal_training[names], schema), settings.anomaly)
 
     suspicion = suspicion_scores(probabilities(classifier, normal_held[names]))
@@ -104,6 +106,10 @@ def report(training: pd.DataFrame, held: pd.DataFrame, limits: Thresholds, tempe
     if any(np.isclose(temperature, bound, rtol=0.01) for bound in TEMPERATURES):
         warnings.append(f"the temperature stopped at {temperature:.3g}, a bound of the search: "
                         "the calibration flows are too few or too easy to set it")
+    unknown = sorted(set(held["label"]) - set(training["label"]))
+    if unknown:
+        warnings.append(f"calibration flows of {unknown}, a class absent from training, were "
+                        "left out of the temperature")
     absent = sorted(set(training["label"]) - set(held["label"]))
     if absent:
         warnings.append(f"no calibration flow of {absent}: the temperature was set "

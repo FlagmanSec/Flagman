@@ -76,7 +76,7 @@ On the phase 3 branches only, until phase 3 starts. Read
 | 8 | `flagman-parquet/README.md`, `src/columns.rs`, `src/writer.rs` | the columns of a feature file, its footer, and why the same capture gives the same bytes |
 | 9 | `flagman-core/src/flow/table.rs` (`in_start_order`, `make_room`) and `flagmand/tests/extract.rs` | ties broken by flow key; two runs of the program compared byte for byte |
 
-## 7. Phase 3: labelled data and models, in Python (1 hour 15 minutes)
+## 7. Phase 3: labelled data, models and evaluation, in Python (1 hour 30 minutes)
 
 On the phase 3 branches only. Everything is in [`ml/`](../ml/README.md);
 run `python -m pytest` there as you read.
@@ -96,3 +96,6 @@ run `python -m pytest` there as you read.
 | 20 | `ml/flagman_ml/models/train.py`, then `train_test.py` | the whole chain on made-up flows, with an attack the models never saw |
 | 21 | `ml/flagman_ml/audit/separability.py`, `ablation_test.py` | the shortcut audit: one feature that alone separates a class, and the drop without it |
 | 22 | `docs/adr/0014-two-scores-a-conformal-false-alarm-budget-and-temperature-scaling.md` | why two scores, why α/2 each, why temperature scaling |
+| 23 | `ml/flagman_ml/evaluation/metrics_test.py`, then `metrics.py` | each metric on numbers checked by hand |
+| 24 | `ml/plans/example.toml`, then `ml/flagman_ml/evaluation/run.py` | a plan: folds of whole files, seeds, attacks left out, another dataset as test |
+| 25 | `ml/flagman_ml/reports/report_test.py` | the rule that every number of a report comes from a results file |

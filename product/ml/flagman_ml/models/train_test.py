@@ -106,3 +106,14 @@ def test_calibration_without_normal_flows_is_refused():
     no_normal = frame[~((frame["source"] == "day2.parquet") & (frame["label"] == "normal"))]
     with pytest.raises(ValueError, match="normal flows"):
         train(no_normal, schema, ["day2.parquet"], FAST)
+
+
+def test_calibration_flows_of_a_class_absent_from_training_are_set_aside():
+    frame, schema = two_days()
+    extra, _ = synthetic_flows({"dos": 30}, seed=7, source="day2.parquet")
+    extra["row"] += 10_000  # rows of the same file, after the others
+    models, report = train(pd.concat([frame, extra], ignore_index=True), schema,
+                           ["day2.parquet"], FAST)
+    assert report["flows"]["calibration"]["dos"] == 30
+    assert any("dos" in warning and "temperature" in warning for warning in report["warnings"])
+    assert "dos" not in models["classifier"].classes_

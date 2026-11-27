@@ -108,6 +108,14 @@ Sorted by theme, then alphabetically.
 | **AUC, separability** | The AUC is the chance that a random flow of a class scores higher than a random other flow (0.5: no information, 1.0: perfect). Separability is the larger of AUC and 1 − AUC. |
 | **Ablation** | Training again without some features, to see how much the model leaned on them. |
 | **Macro-F1** | The F1 score (a balance of precision and recall) of each class, averaged, so rare classes count as much as common ones. |
+| **Fold, seed, run** | A fold is one choice of training, calibration and test files. A seed fixes the randomness of the models. A run is one fold with one seed: train, test, measure. |
+| **Leave one attack type out** | Training without one attack class, then testing on it: the class plays a new attack that no dataset labelled. |
+| **Cross-dataset holdout** | Training on one dataset and testing on another, to see what survives a change of network. |
+| **Detection at a false-alarm rate** | The share of attacks caught when the threshold lets through at most, say, 0.1% of normal flows. One point of the ROC curve, which plots detection against false alarms for every threshold. |
+| **Base rate, precision** | The base rate is the share of flows that are attacks. Precision is the share of alerts that are real. When attacks are rare, even 1% false alarms makes most alerts false. |
+| **ECE (expected calibration error)** | How far probabilities are from what they claim: flows are grouped by their top probability (15 groups), and the gap between that probability and the share that were right is averaged. 0 is perfect. |
+| **Confidence interval** | The range of values a measured share is compatible with. Flagman uses exact (Clopper-Pearson) intervals at 95%. |
+| **Paired test (Wilcoxon, McNemar)** | Tests that compare two methods on the same runs (Wilcoxon signed-rank) or on the same flows (McNemar), so that the difference is not chance. |
 | **Model bundle** | The folder `train` writes: the models (`model.joblib`) and `bundle.json`, which says what they were trained on, their thresholds, and the model file's checksum. |
 
 ## Product names
