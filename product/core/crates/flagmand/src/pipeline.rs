@@ -1,10 +1,14 @@
-//! The capture loop, shared by live mode and replay mode.
+//! The capture loop, shared by live mode, replay mode and `flagmand extract`.
 //!
 //! ```text
-//! packet source ──> engine ──> batches of outputs ──> sink (storage)
-//!                     ^
+//! packet source ──> engine ──> batches of outputs ──> sink (storage, or a
+//!                     ^                                feature file)
 //!   Suricata hits ────┘ (live mode only)
 //! ```
+//!
+//! `flagmand extract` runs this same loop with an engine whose flow table
+//! also computes features (`Engine<FeatureState>`), so the features of a
+//! recorded flow come from exactly the code that runs live.
 //!
 //! Outputs are sent in batches (at most every half second, or every 1,000
 //! outputs), so the database sees a few transactions per second instead of
@@ -14,6 +18,7 @@ use anyhow::Result;
 use flagman_capture::{NextFrame, PacketSource};
 use flagman_core::detect::SignatureHit;
 use flagman_core::engine::{Engine, Output};
+use flagman_core::flow::{FlowExtra, FlowRecord};
 use flagman_core::health::SensorHealth;
 use flagman_core::time::Timestamp;
 use std::sync::RwLock;
@@ -25,10 +30,10 @@ const FLUSH_AT_OUTPUTS: usize = 1_000;
 const FLUSH_EVERY: Duration = Duration::from_millis(500);
 const HEALTH_EVERY: Duration = Duration::from_secs(1);
 
-/// Where batches of outputs go: the writer thread (live) or the database
-/// directly (replay).
-pub trait OutputSink {
-    fn send(&mut self, batch: Vec<Output>) -> Result<()>;
+/// Where batches of outputs go: the writer thread (live), the database
+/// directly (replay), or a feature file (extract). `F` is a finished flow.
+pub trait OutputSink<F = FlowRecord> {
+    fn send(&mut self, batch: Vec<Output<F>>) -> Result<()>;
 }
 
 /// What only live mode has.
@@ -42,10 +47,10 @@ pub struct LiveHooks<'a> {
 
 /// Reads packets until the source ends (file) or `stop` is set (live), then
 /// flushes everything the engine still holds.
-pub fn capture_loop(
+pub fn capture_loop<X: FlowExtra>(
     source: &mut dyn PacketSource,
-    engine: &mut Engine,
-    sink: &mut dyn OutputSink,
+    engine: &mut Engine<X>,
+    sink: &mut dyn OutputSink<X::Finished>,
     live: Option<LiveHooks<'_>>,
 ) -> Result<()> {
     let link = source.link_type();
@@ -92,7 +97,11 @@ pub fn capture_loop(
 }
 
 /// Copies the engine's and the kernel's counters into the shared health.
-fn update_health(health: &RwLock<SensorHealth>, source: &mut dyn PacketSource, engine: &Engine) {
+fn update_health<X: FlowExtra>(
+    health: &RwLock<SensorHealth>,
+    source: &mut dyn PacketSource,
+    engine: &Engine<X>,
+) {
     let counters = engine.counters();
     let stats = source.stats();
     let Ok(mut health) = health.write() else {

@@ -2,6 +2,7 @@
 
 mod extra;
 mod key;
+mod progress;
 mod record;
 mod table;
 

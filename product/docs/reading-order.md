@@ -59,7 +59,7 @@ In `ui/src/`:
 [`../deploy/linux/README.md`](../deploy/linux/README.md), then
 [`home-test.md`](home-test.md).
 
-## 6. Phase 3: features for machine learning (30 minutes)
+## 6. Phase 3: features for machine learning (45 minutes)
 
 On the phase 3 branches only, until phase 3 starts. Read
 [ADR 0012](adr/0012-features-computed-inside-the-flow-table.md) first.
@@ -72,3 +72,6 @@ On the phase 3 branches only, until phase 3 starts. Read
 | 4 | `flagman-features/src/stats.rs`, `direction.rs`, `state.rs` | statistics updated packet by packet, in constant memory |
 | 5 | `flagman-features/src/features.rs`, `schema.rs` | the finished vector, its names, units and version |
 | 6 | `flagman-features/tests/worked_example.rs`, `shortcuts.rs` | a conversation worked out by hand; lab leftovers that must not change a feature |
+| 7 | [ADR 0013](adr/0013-feature-files-in-parquet-from-an-optional-crate.md), then `flagmand/src/extract.rs` | `flagmand extract`: the replay path with `Engine<FeatureState>`, written to a file |
+| 8 | `flagman-parquet/README.md`, `src/columns.rs`, `src/writer.rs` | the columns of a feature file, its footer, and why the same capture gives the same bytes |
+| 9 | `flagman-core/src/flow/table.rs` (`in_start_order`, `make_room`) and `flagmand/tests/extract.rs` | ties broken by flow key; two runs of the program compared byte for byte |

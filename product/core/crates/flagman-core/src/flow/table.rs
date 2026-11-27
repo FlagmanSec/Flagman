@@ -12,17 +12,24 @@
 //! A table can keep extra state next to each flow (see [`FlowExtra`]): the
 //! sensor's table keeps nothing (`FlowTable<()>`), the feature builder keeps
 //! its statistics there.
+//!
+//! Flows live in a hash table, whose order changes from one run to the next.
+//! Wherever that order could leak out (flows ending at the same time, flows
+//! last active in the same millisecond when the table is full), ties are
+//! broken by flow key, so the same capture always gives the same flows in
+//! the same order.
 
 use super::extra::{FlowExtra, FlowPacket};
 use super::key::{Endpoint, FlowKey, Protocol, endpoints_of};
-use super::record::{FlowEnd, FlowRecord, FlowStart, StartKind, TcpOutcome};
-use crate::packet::{IcmpKind, IpPacket, TcpFlags, Transport};
+use super::progress::TcpProgress;
+use super::record::{FlowEnd, FlowRecord, FlowStart, StartKind};
+use crate::packet::{IcmpKind, IpPacket, Transport};
 use crate::time::Timestamp;
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
 /// Timeouts and memory limit of the flow meter.
-#[derive(Clone, Debug, PartialEq, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Deserialize, Serialize)]
 #[serde(default, deny_unknown_fields)]
 pub struct FlowTableConfig {
     pub tcp_idle_secs: i64,
@@ -44,52 +51,6 @@ impl Default for FlowTableConfig {
             closed_linger_secs: 5,
             active_timeout_secs: 300,
             max_flows: 100_000,
-        }
-    }
-}
-
-/// What TCP flags we have seen so far in a flow.
-#[derive(Clone, Copy, Debug, Default)]
-struct TcpProgress {
-    syn_fwd: bool,
-    syn_ack_rev: bool,
-    ack_fwd: bool,
-    fin_fwd: bool,
-    fin_rev: bool,
-    rst_fwd: bool,
-    rst_rev: bool,
-}
-
-impl TcpProgress {
-    fn note(&mut self, forward: bool, flags: TcpFlags) {
-        if forward {
-            self.syn_fwd |= flags.is_connection_request();
-            // A plain ACK from the initiator completes the handshake.
-            self.ack_fwd |= flags.ack && !flags.syn && !flags.rst;
-            self.fin_fwd |= flags.fin;
-            self.rst_fwd |= flags.rst;
-        } else {
-            self.syn_ack_rev |= flags.syn && flags.ack;
-            self.fin_rev |= flags.fin;
-            self.rst_rev |= flags.rst;
-        }
-    }
-
-    fn is_closed(&self) -> bool {
-        self.rst_fwd || self.rst_rev || (self.fin_fwd && self.fin_rev)
-    }
-
-    fn outcome(&self) -> TcpOutcome {
-        if !self.syn_fwd {
-            TcpOutcome::Midstream
-        } else if self.syn_ack_rev && self.ack_fwd {
-            TcpOutcome::Established
-        } else if self.syn_ack_rev {
-            TcpOutcome::HalfOpen
-        } else if self.rst_rev {
-            TcpOutcome::Rejected
-        } else {
-            TcpOutcome::Unanswered
         }
     }
 }
@@ -238,27 +199,24 @@ impl<X: FlowExtra> FlowTable<X> {
         let config = &self.config;
         let mut ended = Vec::new();
         self.flows
-            .retain(|_, state| match state.end_reason(now, config) {
+            .retain(|key, state| match state.end_reason(now, config) {
                 Some(reason) => {
-                    ended.push(state.end(reason));
+                    ended.push((*key, state.end(reason)));
                     false
                 }
                 None => true,
             });
-        ended.sort_by_key(|flow| X::record(flow).first_seen);
-        ended
+        Self::in_start_order(ended)
     }
 
     /// Removes and returns every flow (used at the end of a replay).
     pub fn drain(&mut self) -> Vec<X::Finished> {
-        let mut ended: Vec<X::Finished> = self
+        let ended = self
             .flows
-            .values_mut()
-            .map(|state| state.end(FlowEnd::Stopped))
+            .drain()
+            .map(|(key, mut state)| (key, state.end(FlowEnd::Stopped)))
             .collect();
-        self.flows.clear();
-        ended.sort_by_key(|flow| X::record(flow).first_seen);
-        ended
+        Self::in_start_order(ended)
     }
 
     /// Number of flows being tracked right now.
@@ -272,6 +230,8 @@ impl<X: FlowExtra> FlowTable<X> {
     }
 
     /// Ends the least recently active tenth of the flows (at least one).
+    /// Among flows last active in the same millisecond, the smallest keys
+    /// go first.
     fn make_room(&mut self, now: Timestamp, ended: &mut Vec<X::Finished>) {
         let count = (self.config.max_flows / EVICT_SHARE).clamp(1, self.flows.len().max(1));
         let mut by_last_packet: Vec<(Timestamp, FlowKey)> = self
@@ -280,18 +240,24 @@ impl<X: FlowExtra> FlowTable<X> {
             .map(|(key, state)| (state.record.last_seen, *key))
             .collect();
         if count < by_last_packet.len() {
-            by_last_packet.select_nth_unstable_by_key(count - 1, |&(last_seen, _)| last_seen);
+            by_last_packet.select_nth_unstable(count - 1);
             by_last_packet.truncate(count);
         }
-        let first_new = ended.len();
+        let mut evicted = Vec::with_capacity(by_last_packet.len());
         for (_, key) in by_last_packet {
             if let Some(mut state) = self.flows.remove(&key) {
-                ended.push(state.end(FlowEnd::Evicted));
+                evicted.push((key, state.end(FlowEnd::Evicted)));
                 self.evicted += 1;
                 self.last_eviction = Some(now);
             }
         }
-        ended[first_new..].sort_by_key(|flow| X::record(flow).first_seen);
+        ended.extend(Self::in_start_order(evicted));
+    }
+
+    /// Sorts ended flows by start time, then by key, and drops the keys.
+    fn in_start_order(mut ended: Vec<(FlowKey, X::Finished)>) -> Vec<X::Finished> {
+        ended.sort_by_key(|(key, flow)| (X::record(flow).first_seen, *key));
+        ended.into_iter().map(|(_, flow)| flow).collect()
     }
 }
 

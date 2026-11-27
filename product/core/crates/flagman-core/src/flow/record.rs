@@ -81,6 +81,19 @@ pub enum FlowEnd {
     Stopped,
 }
 
+impl FlowEnd {
+    /// The name used in files and logs, the same as in JSON.
+    pub fn as_str(self) -> &'static str {
+        match self {
+            FlowEnd::Idle => "idle",
+            FlowEnd::Closed => "closed",
+            FlowEnd::ActiveTimeout => "active_timeout",
+            FlowEnd::Evicted => "evicted",
+            FlowEnd::Stopped => "stopped",
+        }
+    }
+}
+
 /// A finished flow: who talked to whom, for how long, and how much.
 /// "fwd" counts packets from the initiator, "rev" packets from the responder.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
@@ -98,4 +111,24 @@ pub struct FlowRecord {
     pub tcp_outcome: Option<TcpOutcome>,
     /// Why the record was closed. Not stored in the database yet.
     pub end: FlowEnd,
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn end_reasons_have_the_same_names_as_in_json() {
+        let all = [
+            FlowEnd::Idle,
+            FlowEnd::Closed,
+            FlowEnd::ActiveTimeout,
+            FlowEnd::Evicted,
+            FlowEnd::Stopped,
+        ];
+        for end in all {
+            let json = serde_json::to_string(&end).unwrap();
+            assert_eq!(json, format!("\"{}\"", end.as_str()));
+        }
+    }
 }

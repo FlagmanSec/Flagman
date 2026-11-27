@@ -17,6 +17,8 @@ flagman-capture = { path = "crates/flagman-capture" }
 flagman-store = { path = "crates/flagman-store" }
 flagman-suricata = { path = "crates/flagman-suricata" }
 flagman-api = { path = "crates/flagman-api" }
+flagman-features = { path = "crates/flagman-features" }
+flagman-parquet = { path = "crates/flagman-parquet" }
 
 # Packet parsing (pure Rust, no unsafe code in our parsing path)
 etherparse = "0.21.1"
@@ -43,6 +45,11 @@ tracing = "0.1.44"
 tracing-subscriber = { version = "0.3.23", features = ["env-filter"] }
 ctrlc = { version = "3.5.3", features = ["termination"] }
 getrandom = "0.4.3"
+# Feature files for machine learning (phase 3), only in builds with the
+# `parquet` feature of flagmand. Pinned to one exact version because the
+# crate changes its interface often. No default features: no Arrow and no
+# compression libraries, only the plain file writer.
+parquet = { version = "=60.2.0", default-features = false }
 # Test-only helpers
 tempfile = "3.27.0"
 tower = { version = "0.5.3", features = ["util"] }

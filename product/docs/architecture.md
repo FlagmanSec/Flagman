@@ -132,6 +132,26 @@ ports, clock times and raw TTL are never features
 ([ADR 0012](adr/0012-features-computed-inside-the-flow-table.md), and the
 [crate README](../core/crates/flagman-features/README.md)).
 
+`flagmand extract capture.pcap --out flows.parquet` writes them to a file
+for training. It runs the replay path above with an
+`Engine<FeatureState>` (the engine and the capture loop take the flow
+table's extra state as a type parameter, `()` by default) and sends the
+finished flows to `flagman-parquet` instead of the database:
+
+```text
+capture file
+  └─> capture loop (pipeline.rs, as in live mode and replay)
+        └─> Engine<FeatureState>: decode, flow table, detectors
+              └─> finished flows: record + features (alerts unused)
+                    └─> flagman-parquet ──> flows.parquet (one row per flow,
+                                            schema in the footer)
+```
+
+It exists only in builds with flagmand's `parquet` feature, off by default
+([ADR 0013](adr/0013-feature-files-in-parquet-from-an-optional-crate.md)).
+The same capture always gives the same bytes: packet timestamps drive
+every timeout, and the flow table breaks ties by flow key.
+
 ## Threads and shutdown
 
 | Thread | Job |

@@ -29,6 +29,11 @@ pub enum Command {
     /// Analyse a .pcap capture file, print what was found, and optionally
     /// open the results in the dashboard.
     Replay(ReplayArgs),
+    /// Write the features of every connection in a .pcap file to a Parquet
+    /// file, to train models (machine learning). Only in builds made with
+    /// `--features parquet`.
+    #[cfg_attr(not(feature = "parquet"), command(hide = true))]
+    Extract(ExtractArgs),
     /// List the network interfaces Flagman can watch.
     Interfaces,
     /// Print the dashboard link, with its access token.
@@ -63,6 +68,23 @@ pub struct ReplayArgs {
     pub ui_dir: Option<PathBuf>,
 }
 
+#[derive(Debug, Args)]
+pub struct ExtractArgs {
+    /// The capture file (.pcap or .pcapng).
+    pub pcap: PathBuf,
+    /// The Parquet file to write, such as flows.parquet.
+    #[arg(long)]
+    pub out: PathBuf,
+    /// Replace the output file if it already exists.
+    #[arg(long)]
+    pub overwrite: bool,
+    /// Configuration file, for the flow table's timeouts and limit (use the
+    /// sensor's own file so features match what it sees). Default: built-in
+    /// values.
+    #[arg(long, short)]
+    pub config: Option<PathBuf>,
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -81,5 +103,15 @@ mod tests {
         };
         assert!(!args.overwrite, "never replace results without being asked");
         assert!(args.listen.ip().is_loopback());
+    }
+
+    #[test]
+    fn extract_needs_an_output_file_and_never_overwrites_by_default() {
+        assert!(Cli::try_parse_from(["flagmand", "extract", "lab.pcap"]).is_err());
+        let cli = Cli::parse_from(["flagmand", "extract", "lab.pcap", "--out", "flows.parquet"]);
+        let Command::Extract(args) = cli.command else {
+            panic!("expected extract");
+        };
+        assert!(!args.overwrite);
     }
 }

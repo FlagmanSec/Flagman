@@ -8,10 +8,16 @@
 //! It never blocks and never touches the disk. Everything it produces is
 //! pushed into an `out` vector of [`Output`]s, which the daemon hands to the
 //! storage writer.
+//!
+//! The sensor's engine is an `Engine<()>`, made with [`Engine::new`].
+//! `flagmand extract` makes an `Engine<FeatureState>` with
+//! [`Engine::with_extra`]: the flow table then also computes each flow's
+//! features (see [`FlowExtra`]), and everything else runs exactly as in the
+//! sensor.
 
 use crate::alert::Alert;
 use crate::detect::{DetectConfig, Detectors, SignatureHit};
-use crate::flow::{FlowRecord, FlowTable, FlowTableConfig};
+use crate::flow::{FlowExtra, FlowRecord, FlowTable, FlowTableConfig};
 use crate::ids::IdGenerator;
 use crate::incident::{Incident, IncidentEngine};
 use crate::packet::{LinkType, Network, PacketMeta, Transport, decode};
@@ -45,10 +51,11 @@ pub struct StartIds {
     pub last_incident_id: u64,
 }
 
-/// Everything the engine produces.
+/// Everything the engine produces. `F` is a finished flow: a [`FlowRecord`]
+/// in the sensor, a record with its features in `flagmand extract`.
 #[derive(Clone, Debug, PartialEq)]
-pub enum Output {
-    Flow(FlowRecord),
+pub enum Output<F = FlowRecord> {
+    Flow(F),
     Alert(Alert),
     Incident(Incident),
     Traffic(TrafficMinute),
@@ -72,8 +79,11 @@ pub struct EngineCounters {
 /// Housekeeping (timeouts) runs at most once per second of packet time.
 const HOUSEKEEPING_EVERY_MS: i64 = 1_000;
 
-pub struct Engine {
-    flows: FlowTable,
+/// What the engine outputs when its flow table keeps an `X` per flow.
+type Outputs<X> = Vec<Output<<X as FlowExtra>::Finished>>;
+
+pub struct Engine<X = ()> {
+    flows: FlowTable<X>,
     detectors: Detectors,
     incidents: IncidentEngine,
     traffic: TrafficCounter,
@@ -81,10 +91,18 @@ pub struct Engine {
     next_housekeeping: Timestamp,
 }
 
-impl Engine {
-    pub fn new(config: &EngineConfig, ids: StartIds) -> Engine {
+impl Engine<()> {
+    /// The sensor's engine: finished flows are plain records.
+    pub fn new(config: &EngineConfig, ids: StartIds) -> Engine<()> {
+        Engine::with_extra(config, ids)
+    }
+}
+
+impl<X: FlowExtra> Engine<X> {
+    /// An engine whose flow table keeps an `X` next to each flow.
+    pub fn with_extra(config: &EngineConfig, ids: StartIds) -> Engine<X> {
         Engine {
-            flows: FlowTable::new(config.flows.clone()),
+            flows: FlowTable::with_extra(config.flows.clone()),
             detectors: Detectors::new(
                 &config.detect,
                 IdGenerator::starting_after(ids.last_alert_id),
@@ -106,7 +124,7 @@ impl Engine {
         ts: Timestamp,
         wire_len: u32,
         data: &[u8],
-        out: &mut Vec<Output>,
+        out: &mut Outputs<X>,
     ) {
         self.counters.packets += 1;
         self.counters.bytes += u64::from(wire_len);
@@ -121,7 +139,7 @@ impl Engine {
         self.tick(ts, out);
     }
 
-    fn process_packet(&mut self, packet: &PacketMeta, out: &mut Vec<Output>) {
+    fn process_packet(&mut self, packet: &PacketMeta, out: &mut Outputs<X>) {
         let mut alerts = Vec::new();
         match &packet.network {
             Network::Ip(ip_packet) => {
@@ -150,7 +168,7 @@ impl Engine {
     }
 
     /// Processes one rule match reported by Suricata.
-    pub fn process_signature(&mut self, hit: SignatureHit, out: &mut Vec<Output>) {
+    pub fn process_signature(&mut self, hit: SignatureHit, out: &mut Outputs<X>) {
         let mut alerts = Vec::new();
         self.detectors.on_signature(hit, &mut alerts);
         self.publish(alerts, out);
@@ -158,7 +176,7 @@ impl Engine {
 
     /// Runs timeouts. Called after each packet, and by the daemon with the
     /// wall-clock time when no packet arrives.
-    pub fn tick(&mut self, now: Timestamp, out: &mut Vec<Output>) {
+    pub fn tick(&mut self, now: Timestamp, out: &mut Outputs<X>) {
         if now < self.next_housekeeping {
             return;
         }
@@ -177,7 +195,7 @@ impl Engine {
 
     /// Flushes everything: open flows, open findings, partial traffic counts.
     /// Used at the end of a replay and when the daemon stops.
-    pub fn finish(&mut self, out: &mut Vec<Output>) {
+    pub fn finish(&mut self, out: &mut Outputs<X>) {
         let mut alerts = Vec::new();
         let ended = self.flows.drain();
         self.flows_ended(ended, &mut alerts, out);
@@ -198,7 +216,7 @@ impl Engine {
         ts: Timestamp,
         class: TrafficClass,
         bytes: u32,
-        out: &mut Vec<Output>,
+        out: &mut Outputs<X>,
     ) {
         let mut rows = Vec::new();
         self.traffic.add(ts, class, bytes, &mut rows);
@@ -209,11 +227,11 @@ impl Engine {
     /// outputs them for storage.
     fn flows_ended(
         &mut self,
-        ended: Vec<FlowRecord>,
+        ended: Vec<X::Finished>,
         alerts: &mut Vec<Alert>,
-        out: &mut Vec<Output>,
+        out: &mut Outputs<X>,
     ) {
-        let mut by_end: Vec<&FlowRecord> = ended.iter().collect();
+        let mut by_end: Vec<&FlowRecord> = ended.iter().map(X::record).collect();
         by_end.sort_by_key(|flow| flow.last_seen);
         for flow in by_end {
             self.detectors.on_flow_end(flow, alerts);
@@ -222,7 +240,7 @@ impl Engine {
     }
 
     /// Links each alert to its incident, then outputs both.
-    fn publish(&mut self, alerts: Vec<Alert>, out: &mut Vec<Output>) {
+    fn publish(&mut self, alerts: Vec<Alert>, out: &mut Outputs<X>) {
         for mut alert in alerts {
             let incident = self.incidents.on_alert(&alert);
             alert.incident_id = Some(incident.id);
@@ -246,101 +264,5 @@ impl Engine {
 mod flood_tests;
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::alert::AlertKind;
-    use crate::testutil::{RST_ACK, SYN, tcp_frame};
-
-    #[test]
-    fn a_replayed_scan_becomes_an_incident_with_flows_and_traffic() {
-        let mut engine = Engine::new(&EngineConfig::default(), StartIds::default());
-        let mut out = Vec::new();
-        for port in 1..=50u16 {
-            let ms = i64::from(port) * 10;
-            let syn = tcp_frame("192.168.1.66", 60_000, "192.168.1.10", port, SYN);
-            let reset = tcp_frame("192.168.1.10", port, "192.168.1.66", 60_000, RST_ACK);
-            engine.process_frame(
-                LinkType::Ethernet,
-                Timestamp(ms),
-                syn.len() as u32,
-                &syn,
-                &mut out,
-            );
-            engine.process_frame(
-                LinkType::Ethernet,
-                Timestamp(ms + 1),
-                reset.len() as u32,
-                &reset,
-                &mut out,
-            );
-        }
-        engine.finish(&mut out);
-
-        let flows = out.iter().filter(|o| matches!(o, Output::Flow(_))).count();
-        assert_eq!(flows, 50);
-        let alert = out
-            .iter()
-            .rev()
-            .find_map(|o| match o {
-                Output::Alert(alert) => Some(alert),
-                _ => None,
-            })
-            .expect("an alert");
-        assert_eq!(alert.kind, AlertKind::PortScan);
-        assert_eq!(alert.count, 50);
-        assert_eq!(alert.incident_id, Some(1));
-        assert!(
-            out.iter()
-                .any(|o| matches!(o, Output::Incident(i) if i.id == 1))
-        );
-        assert!(out.iter().any(|o| matches!(o, Output::Traffic(_))));
-        assert_eq!(engine.counters().packets, 100);
-    }
-
-    /// The attack from the review of phase 1: about 1,000 packets per second
-    /// from 60,000 fake addresses fill the detectors, then a real scan runs.
-    /// Before the fix the scan went unseen; now the fake entries make room.
-    #[test]
-    fn a_flood_of_fake_addresses_does_not_hide_a_real_scan() {
-        let mut engine = Engine::new(&EngineConfig::default(), StartIds::default());
-        let mut out = Vec::new();
-        let send = |engine: &mut Engine, ms: i64, frame: Vec<u8>, out: &mut Vec<Output>| {
-            engine.process_frame(
-                LinkType::Ethernet,
-                Timestamp(ms),
-                frame.len() as u32,
-                &frame,
-                out,
-            );
-        };
-        for i in 0..60_000u32 {
-            let fake = format!("10.{}.{}.{}", i >> 16, (i >> 8) & 0xff, i & 0xff);
-            send(
-                &mut engine,
-                i64::from(i),
-                tcp_frame(&fake, 40_000, "192.168.1.10", 80, SYN),
-                &mut out,
-            );
-            if (55_000..56_000).contains(&i) {
-                let port = u16::try_from(i - 55_000 + 1).unwrap();
-                let syn = tcp_frame("192.168.1.66", 50_000, "192.168.1.10", port, SYN);
-                send(&mut engine, i64::from(i), syn, &mut out);
-            }
-        }
-        engine.finish(&mut out);
-
-        let scan = out
-            .iter()
-            .rev()
-            .find_map(|o| match o {
-                Output::Alert(alert) if alert.kind == AlertKind::PortScan => Some(alert),
-                _ => None,
-            })
-            .expect("the real scan is detected");
-        assert_eq!(scan.src_ip.to_string(), "192.168.1.66");
-        assert_eq!(scan.count, 1_000);
-        let counters = engine.counters();
-        assert!(counters.detector_evicted > 0, "the detectors were full");
-        assert!(counters.saturated_at.is_some());
-    }
-}
+#[path = "engine_tests.rs"]
+mod tests;

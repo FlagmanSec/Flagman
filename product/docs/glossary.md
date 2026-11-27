@@ -78,6 +78,13 @@ Sorted by theme, then alphabetically.
 | **Data bytes (payload)** | The application's bytes inside a packet, after the IP and TCP or UDP headers. Flagman reads their size from the headers, even when it kept only the first 160 bytes of the packet. |
 | **Metadata column** | A value kept next to the features (addresses, ports, times) to label flows and split data by day, never used as a model input. |
 | **Running statistics** | A mean and standard deviation updated one value at a time (Welford's method), so no list of packets is ever kept. |
+| **Parquet** | A file format that stores a table column by column, with a type for each column and real empty values. Python's pandas and pyarrow read it directly. Flagman's feature files are Parquet. |
+| **Feature file** | The output of `flagmand extract`: one row per flow, the metadata columns then the features, with the schema stored in the file's footer. |
+| **Footer (key-value metadata)** | The end of a Parquet file, where Flagman stores the schema version, the schema, the flow table's settings and the capture's name. |
+| **Row group** | Parquet's unit of storage: a block of rows (65,536 in Flagman's files) written together. |
+| **Cargo feature** | An optional part of a Rust program, chosen when building it. `flagmand extract` needs `--features parquet`; the normal build leaves it out. |
+| **Byte-identical (deterministic)** | Running the same program twice on the same input gives exactly the same file, byte for byte. Flagman's extraction is, so two evaluation runs can be compared. |
+| **Parity test** | A check that features computed live and features extracted from a recording of the same traffic are equal. Described in the phase 2 plan (2.9), not built yet. |
 
 ## Product names
 

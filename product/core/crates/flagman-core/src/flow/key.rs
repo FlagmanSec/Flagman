@@ -44,7 +44,11 @@ pub struct Endpoint {
 }
 
 /// The lookup key of a flow. Built with [`FlowKey::new`] so both directions match.
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+///
+/// Keys are ordered (protocol, then the two endpoints) so the flow table can
+/// break ties the same way every time: two flows that started in the same
+/// millisecond always come out in the same order.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub struct FlowKey {
     pub protocol: Protocol,
     pub low: Endpoint,

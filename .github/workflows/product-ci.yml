@@ -43,6 +43,18 @@ jobs:
         run: cargo clippy --all-targets --locked -- -D warnings
       - name: Tests
         run: cargo test --locked
+      # `flagmand extract` (machine learning, phase 3) only exists with the
+      # `parquet` feature, which is off by default.
+      - name: Lints of flagmand extract (parquet feature)
+        run: cargo clippy -p flagmand --all-targets --features parquet --locked -- -D warnings
+      - name: Tests of flagmand extract, with the byte-identical check
+        run: cargo test -p flagmand --features parquet --locked
+      - name: The normal flagmand build has no Parquet code (keeps Edge small)
+        run: |
+          if cargo tree -p flagmand --locked -e normal | grep -q " parquet v"; then
+            echo "parquet is in the default flagmand build: keep it behind the parquet feature"
+            exit 1
+          fi
 
   ui:
     name: Dashboard (Svelte)
