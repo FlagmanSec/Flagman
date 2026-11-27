@@ -15,7 +15,7 @@ detects with rules for now; machine learning comes in a later phase.
 |---|---|---|
 | Network sweep | `sudo nmap -sn 192.168.1.0/24` | one device checks 15 or more local addresses within 60 s |
 | Port scan | `nmap 192.168.1.10` | one device tries 20 or more TCP ports (or 30 UDP ports) of one machine within 60 s |
-| Login attempts | a password-guessing tool against SSH | 10 or more connections to a login port of a device in your network within 60 s that were refused or closed within 30 s |
+| Login attempts | a password-guessing tool against SSH | 10 or more connections to a login port of a device in your network within 60 s that were refused or closed within 30 s; 30 or more for a server on the internet (a device of yours that guesses passwords elsewhere may be infected) |
 | Known attack patterns | anything Suricata's rules recognise | read from Suricata's `eve.json`, if Suricata is installed |
 
 Alerts about the same device are grouped into one incident, shown in a
