@@ -1,6 +1,7 @@
 # Phase 2 plan: several small pull requests
 
-Status: proposed, for the team to agree on. Date: 2026-11-26.
+Status: proposed, for the team to agree on. Date: 2026-11-26; 2.9 added
+on 2026-11-27 with the phase 3 toolkit.
 
 Phase 1 arrived as one pull request of 17,760 lines, which Seraj's review
 found too big to read block by block. Phase 2 comes as a series of small
@@ -38,6 +39,7 @@ the home data can be prepared during the test week.
 | 2.6 | Fit the router: memory limits and a start-up script | 2.5 | after 2.5 |
 | 2.7 | Install package and guide for the router | 2.6 | after 2.6 |
 | 2.8 | What the router sees, and the dashboard on it | 2.7 | after 2.7 |
+| 2.9 | Live and replay give the same features (parity test) | `flagmand extract`, from the phase 3 toolkit | once that pull request is merged |
 
 ## Linux, driven by the home test
 
@@ -142,3 +144,68 @@ cat /etc/openwrt_release
   router's processor at all (it may be switched without reaching it).
   Then adapt [home-test.md](home-test.md) for the router and serve the
   dashboard from it.
+
+## Machine learning groundwork
+
+### 2.9 Live and replay give the same features (parity test)
+
+Written now, built later: Seraj's phase 3 brief asks for this test to be
+described, not built yet. Nothing below exists today except the pinned
+difference in the first bullet of "Known differences".
+
+- **Why:** phase 3 trains models on features extracted from recordings
+  (`flagmand extract`) and runs them on features computed live. If the two
+  differ, a model's scores on recordings say nothing about what it does
+  live, which is the first lesson of the CS395 project. `extract` already
+  runs the live code (the same capture loop, engine and flow table, see
+  `flagmand/src/extract.rs`); this test checks the whole chain on real
+  traffic, from the network card to the feature file.
+- **What to build:**
+  1. A way to save features in live mode, for this test only:
+     `flagmand run --features-out live.parquet`, behind the same `parquet`
+     cargo feature, with `Engine<FeatureState>` and the writer `extract`
+     uses. The normal sensor does not change.
+  2. A lab script, like `core/testdata/pcap/record-lab-captures.sh`: in the
+     isolated namespace lab, start `tcpdump -w lab.pcap` and
+     `flagmand run --features-out live.parquet` on the same interface, run
+     the normal and attack traffic, include the quiet case below, wait
+     until every flow has ended, then stop both.
+  3. `flagmand extract lab.pcap --out replay.parquet --config flagman.toml`,
+     with the same configuration file as the live run.
+  4. A comparison (a pytest in `product/ml`): match rows on protocol,
+     addresses, ports and start time. Every flow must be in both files,
+     with all 37 features exactly equal (same code, same packets).
+- **Known differences to settle first:**
+  - **Timeouts during a silence.** Live, the capture returns every 250 ms
+    when no packet arrives, and the engine then runs its timeouts with the
+    clock (at most once per second). A replay runs them only after a
+    packet. So a flow that stays silent longer than its idle timeout, in a
+    capture with no other traffic at all, is cut in two live but stays one
+    flow in a replay. `flagman-core/src/engine_tests.rs` pins this today
+    (`a_flow_silent_past_its_timeout_is_cut_live_but_not_in_a_quiet_replay`).
+    Proposed fix: in `Engine::process_frame`, also run the timeouts that
+    are due *before* adding the packet. Tried locally on 2026-11-27 on the
+    three lab captures: no flow and no feature changed, only the order of
+    rows in the files, and every test still passed. Busy captures, like
+    the public datasets, are rarely affected, because other packets run
+    the timeouts.
+  - **Lost packets.** Live, the kernel drops packets when the sensor falls
+    behind (`kernel_dropped` in the sensor's health); tcpdump reports its
+    own drops when it stops. A run with drops on either side does not
+    count; the script checks both and starts again.
+  - **The first and last flows.** Flows already open when the capture
+    starts look `midstream` in both files. Flows still open at the end are
+    `stopped` at slightly different moments, so the script waits until
+    every flow has ended before stopping, and the comparison leaves out
+    `stopped` flows.
+  - **Timestamps.** Both programs read the kernel's timestamp of the same
+    packet, so they should agree; the comparison checks it. If they do
+    not, it records the largest difference, and only the timing features
+    may then differ by 1 ms.
+  - **Capture length.** Flagman captures 160 bytes per packet live, while
+    tcpdump records whole packets by default. Data sizes come from the
+    headers (`payload_len`), so the features must not change; the test
+    confirms it.
+- **Checked by:** the comparison passes on a lab run with no lost packets;
+  its numbers (flows on each side, mismatches) are kept in
+  `docs/changes/`.

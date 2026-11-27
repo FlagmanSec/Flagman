@@ -111,8 +111,8 @@ and gaps measured from the flow's start instead of the clock.
 `src/schema.rs` lists every feature with its name, unit, type and shortcut
 note, in output order, and the metadata columns with the reason each one is
 never an input. `schema_json()` gives the same as JSON; every file written by
-`flagmand extract` (phase 3, next pull request) stores it with
-`SCHEMA_VERSION`. Python reads the list of features from there, so it can
+`flagmand extract` stores it with `SCHEMA_VERSION` (see
+[`flagman-parquet`](../flagman-parquet/README.md)). Python reads the list of features from there, so it can
 never pick a metadata column by mistake.
 
 **Changing a feature:** add or change it in `features.rs` and `schema.rs`,

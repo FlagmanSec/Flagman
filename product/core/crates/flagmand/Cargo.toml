@@ -6,8 +6,17 @@ edition.workspace = true
 rust-version.workspace = true
 publish.workspace = true
 
+[features]
+# `flagmand extract`: writes the features of every flow to a Parquet file,
+# for machine learning (phase 3). Off by default: the sensor never needs
+# it, and the router build (Edge) must stay small. Build it with
+# `cargo build --release -p flagmand --features parquet`.
+parquet = ["dep:flagman-features", "dep:flagman-parquet"]
+
 [dependencies]
 flagman-core.workspace = true
+flagman-features = { workspace = true, optional = true }
+flagman-parquet = { workspace = true, optional = true }
 flagman-capture.workspace = true
 flagman-store.workspace = true
 flagman-suricata.workspace = true
@@ -25,3 +34,8 @@ tracing-subscriber.workspace = true
 
 [dev-dependencies]
 tempfile.workspace = true
+
+# Runs the real program twice on the same capture: needs the feature.
+[[test]]
+name = "extract"
+required-features = ["parquet"]

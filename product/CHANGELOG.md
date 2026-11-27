@@ -21,6 +21,27 @@ starts. Details: [docs/changes/phase-3-toolkit.md](docs/changes/phase-3-toolkit.
   sensor's table keeps nothing, so detection is unchanged.
 - Decoded packets carry their data size (read from the headers, so right
   with a short capture) and their TTL.
+- `flagmand extract capture.pcap --out flows.parquet`: the features of
+  every flow, one row per flow, in a Parquet file that stores its own
+  schema. It runs the sensor's capture loop and engine, so recorded and
+  live features come from the same code. Only in builds made with
+  `--features parquet` (off by default, so the router build stays small;
+  CI checks it), through the new crate `flagman-parquet`
+  ([ADR 0013](docs/adr/0013-feature-files-in-parquet-from-an-optional-crate.md)).
+- The same capture always gives a byte-identical file; a test runs the
+  program twice on each lab capture and compares the files.
+- The phase 2 plan describes the live/replay parity test (2.9), and a test
+  pins the one known difference (a flow silent past its timeout in an
+  otherwise silent capture).
+
+### Changed (phase 3 toolkit)
+
+- The flow table breaks ties by flow key: flows that end together come out
+  in the same order on every run, and a full table always ends the same
+  flows when several were last active in the same millisecond. No detector
+  result depends on it; every earlier test is unchanged.
+- The engine and the capture loop take the flow table's extra state as a
+  type parameter (`Engine<X = ()>`); the sensor's code is unchanged.
 
 ## [0.1.0] - unreleased
 

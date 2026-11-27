@@ -1,6 +1,7 @@
 //! Tests for the flow meter. Each test replays a tiny conversation.
 
 use super::*;
+use crate::flow::TcpOutcome;
 use crate::packet::{Network, PacketMeta};
 use crate::testutil::{ACK, FIN_ACK, RST, RST_ACK, SYN, SYN_ACK, packet_at, tcp_frame, udp_frame};
 
@@ -209,4 +210,58 @@ fn a_flood_of_new_flows_cannot_push_out_an_active_connection() {
         .into_iter()
         .find(|record| record.responder.port == 22);
     assert_eq!(real.map(|record| record.packets_fwd), Some(1_001));
+}
+
+/// Flows sit in a hash table whose order changes with every new table, like
+/// it changes between two runs of the program. Ties must not show it.
+fn udp_flows_started_together(table: &mut FlowTable, ports: impl Iterator<Item = u16>) {
+    for port in ports {
+        let frame = udp_frame(CLIENT, port, SERVER, 53);
+        let meta = packet_at(0, &frame);
+        let mut ended = Vec::new();
+        table.observe(meta.ts, meta.wire_len, &ip_packet(&meta), &mut ended);
+    }
+}
+
+fn client_ports(flows: &[FlowRecord]) -> Vec<u16> {
+    flows.iter().map(|flow| flow.initiator.port).collect()
+}
+
+#[test]
+fn flows_that_start_in_the_same_millisecond_always_end_in_the_same_order() {
+    let in_key_order: Vec<u16> = (40_000..40_020).collect();
+    for _ in 0..5 {
+        let mut table = FlowTable::new(FlowTableConfig::default());
+        udp_flows_started_together(&mut table, (40_000..40_020).rev());
+        assert_eq!(client_ports(&table.expire(Timestamp(61_000))), in_key_order);
+
+        let mut table = FlowTable::new(FlowTableConfig::default());
+        udp_flows_started_together(&mut table, (40_000..40_020).rev());
+        assert_eq!(client_ports(&table.drain()), in_key_order);
+    }
+}
+
+#[test]
+fn a_full_table_always_ends_the_same_flow_when_several_are_equally_old() {
+    let config = FlowTableConfig {
+        max_flows: 10,
+        ..FlowTableConfig::default()
+    };
+    for _ in 0..5 {
+        let mut table = FlowTable::new(config.clone());
+        udp_flows_started_together(
+            &mut table,
+            [40_005, 40_002, 40_009, 40_000, 40_007].into_iter(),
+        );
+        udp_flows_started_together(
+            &mut table,
+            [40_001, 40_008, 40_003, 40_006, 40_004].into_iter(),
+        );
+        let (_, ended) = feed_full(&mut table, 0, udp_frame(CLIENT, 41_000, SERVER, 53));
+        assert_eq!(
+            client_ports(&ended),
+            [40_000],
+            "the smallest key goes first"
+        );
+    }
 }

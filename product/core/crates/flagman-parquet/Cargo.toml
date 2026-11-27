@@ -1,0 +1,16 @@
+[package]
+name = "flagman-parquet"
+description = "Writes Flagman's per-flow features to Parquet files, for training models (phase 3)."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+publish.workspace = true
+
+[dependencies]
+flagman-core.workspace = true
+flagman-features.workspace = true
+parquet.workspace = true
+serde_json.workspace = true
+
+[dev-dependencies]
+tempfile.workspace = true
