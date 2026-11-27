@@ -13,6 +13,7 @@ next to the code, in files ending in `_test.py`.
 | `evaluation/` | plans of splits by file, runs, metrics, summaries ([README](evaluation/README.md)) |
 | `reports/` | Markdown reports written only from results JSON files ([README](reports/README.md)) |
 | `suricata/` | Suricata on the same captures: running it, reading its EVE alerts, matching them to flows ([README](suricata/README.md)) |
+| `export/` | the classifier in LightGBM's text format, for a runtime outside Python ([README](export/README.md)) |
 | `files.py` | checksums, safe file replacement, tables with provenance, used by all of the above |
 | `synthetic.py` | made-up flows with the real schema, and made-up days written as feature files, for the tests only |
 | `testing.py` | helpers for the tests only (paths of the test files, rewriting a feature file) |

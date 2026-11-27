@@ -76,7 +76,7 @@ On the phase 3 branches only, until phase 3 starts. Read
 | 8 | `flagman-parquet/README.md`, `src/columns.rs`, `src/writer.rs` | the columns of a feature file, its footer, and why the same capture gives the same bytes |
 | 9 | `flagman-core/src/flow/table.rs` (`in_start_order`, `make_room`) and `flagmand/tests/extract.rs` | ties broken by flow key; two runs of the program compared byte for byte |
 
-## 7. Phase 3: labelled data, models and evaluation, in Python (1 hour 45 minutes)
+## 7. Phase 3: labelled data, models and evaluation, in Python (2 hours 15 minutes)
 
 On the phase 3 branches only. Everything is in [`ml/`](../ml/README.md);
 run `python -m pytest` there as you read.
@@ -101,3 +101,6 @@ run `python -m pytest` there as you read.
 | 25 | `ml/flagman_ml/reports/report_test.py` | the rule that every number of a report comes from a results file |
 | 26 | `ml/flagman_ml/suricata/match.py`, then `match_test.py` | how a Suricata alert finds its Flagman flow: same ends, same protocol, packet time inside the flow |
 | 27 | `ml/fixtures/README.md` (the Suricata files), then `ml/flagman_ml/suricata/cli_test.py` | alerts Suricata really wrote for the lab captures, with two local rules, matched to the lab flows |
+| 28 | `ml/flagman_ml/export/README.md`, then `lightgbm_text_test.py` | the export a runtime needs: category codes, empty values as NaN, an exact reload |
+| 29 | `docs/adr/0015-model-runtime.md`, then `ml/experiments/model-runtime/bench_test.py` | three ways to run the model in the sensor, measured; the test that generated code gives LightGBM's scores exactly |
+| 30 | `ml/docs/runbook.md` | the full campaign on a small VM: disk, time, memory, results, and resuming after a crash |

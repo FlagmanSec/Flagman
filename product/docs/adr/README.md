@@ -20,6 +20,7 @@ history.
 | [0012](0012-features-computed-inside-the-flow-table.md) | Compute machine learning features inside the flow table | proposed (phase 3) |
 | [0013](0013-feature-files-in-parquet-from-an-optional-crate.md) | Write feature files in Parquet, from an optional crate | proposed (phase 3) |
 | [0014](0014-two-scores-a-conformal-false-alarm-budget-and-temperature-scaling.md) | Alerts from two scores, a conformal false-alarm budget, and temperature scaling | proposed (phase 3) |
+| [0015](0015-model-runtime.md) | How the sensor runs the trained models | draft (phase 3, to decide after the campaign) |
 
 Template for a new record:
 

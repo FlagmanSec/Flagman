@@ -1,0 +1,129 @@
+{
+  "c_api": {
+    "iterations": 200,
+    "largest_difference": 0.0,
+    "library_bytes": 9247120,
+    "load_seconds": 0.018661,
+    "microseconds_per_flow": {
+      "median": 31.94,
+      "runs": [
+        36.544,
+        34.034,
+        30.3,
+        27.86,
+        31.94
+      ]
+    },
+    "rows": 2000,
+    "rss_kb_after_load": 11124,
+    "rss_kb_before_load": 6476
+  },
+  "codegen": {
+    "compile_seconds": 17.995855379000204,
+    "largest_difference": 0.0,
+    "microseconds_per_flow": {
+      "median": 5.543,
+      "runs": [
+        5.543,
+        5.463,
+        5.85,
+        6.571,
+        5.308
+      ]
+    },
+    "program_bytes": 594216,
+    "rows": 2000,
+    "rss_kb": 2860,
+    "source_bytes": 1970704
+  },
+  "machine": {
+    "cpu": "Intel(R) Xeon(R) Processor @ 2.10GHz",
+    "cpus": 4,
+    "system": "Linux-6.18.44-fc-v880-x86_64-with-glibc2.39"
+  },
+  "model": {
+    "classes": 4,
+    "inputs": 37,
+    "leaves": 12141,
+    "text_bytes": 1480139,
+    "train_seconds": 2.737449051999647,
+    "trees": 800
+  },
+  "note": "a pipeline check on made-up flows, not a result",
+  "onnx": {
+    "classifier": {
+      "bytes": 890294,
+      "largest_probability_difference": 8.604760493025054e-08,
+      "load_seconds": 0.02161864399931801,
+      "microseconds_per_flow": {
+        "median": 31.762300500304264,
+        "runs": [
+          30.073618000642455,
+          30.956925999817035,
+          34.8039914997571,
+          31.762300500304264,
+          32.99717400022928
+        ]
+      },
+      "microseconds_per_flow_in_one_batch": {
+        "median": 17.081242500353255,
+        "runs": [
+          17.549659999531286,
+          17.25458599958074,
+          16.898206999940157,
+          17.081242500353255,
+          16.847859999870707
+        ]
+      },
+      "rows": 2000,
+      "rss_kb_after_import": 61088,
+      "rss_kb_after_load": 81704,
+      "same_top_class": 1.0
+    },
+    "forest": {
+      "bytes": 1386483,
+      "largest_score_difference": 2.626400077976321e-07
+    },
+    "library_bytes": {
+      "libonnxruntime.so.1.32.0": 34824680,
+      "libonnxruntime_providers_shared.so": 14632,
+      "onnxruntime_pybind11_state.cpython-313-x86_64-linux-gnu.so": 36644168
+    }
+  },
+  "python_lightgbm": {
+    "load_seconds": 0.02196545600054378,
+    "microseconds_per_flow": {
+      "median": 134.6757519968378,
+      "runs": [
+        140.3028760032612,
+        134.6757519968378,
+        116.19044199687778,
+        242.7929639998183,
+        63.639989999501275
+      ]
+    },
+    "microseconds_per_flow_in_one_batch": {
+      "median": 27.39215250039706,
+      "runs": [
+        25.47595750002074,
+        26.07363049992273,
+        27.39215250039706,
+        29.34394549993158,
+        30.474897500425868
+      ]
+    }
+  },
+  "repeats": 5,
+  "test_flows": 2000,
+  "versions": {
+    "cc": "cc (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0",
+    "lightgbm": "4.7.0",
+    "numpy": "2.5.5",
+    "onnx": "1.23.2",
+    "onnxmltools": "1.16.0",
+    "onnxruntime": "1.32.0",
+    "python": "3.13.18",
+    "scikit-learn": "1.9.1",
+    "skl2onnx": "1.20.0"
+  }
+}

@@ -120,6 +120,12 @@ Sorted by theme, then alphabetically.
 | **ET Open** | The Emerging Threats Open rule set for Suricata, downloaded by `suricata-update`. The comparison with Suricata is meant to use it; the lab test files use two local rules instead. |
 | **HOME_NET** | Suricata's name for the networks it protects. Many rules only look at traffic towards it, so it must name the dataset's internal networks. |
 | **Unmatched alert** | A Suricata alert that no Flagman flow holds (no flow with the same ends and protocol at that time). Counted and reported, never dropped. |
+| **Model export** | The classifier written in LightGBM's own text format (`classifier.txt`), with `export.json` for everything else a runtime needs: the input order, category codes, classes, temperature and thresholds. |
+| **Raw score** | What the trees add up for each class, before the softmax turns the scores into probabilities. A runtime must give the same raw scores as Python, or the thresholds no longer mean the same false-alarm rate. |
+| **Model runtime** | The code that runs a trained model inside the sensor. Three were measured (ADR 0015, a draft): LightGBM's C API, generated code, and ONNX Runtime. |
+| **Code generation (codegen)** | Turning a model's trees into source code (here one C function of `if` tests) that is compiled into the program, so no library is needed to run it. |
+| **ONNX, ONNX Runtime** | ONNX is a file format for trained models; ONNX Runtime is Microsoft's program that runs such files. The converters onnxmltools and skl2onnx write LightGBM and scikit-learn models in it. |
+| **Runbook** | Step-by-step instructions for running something later: here, the full phase 3 campaign on a small VM (`ml/docs/runbook.md`). |
 
 ## Product names
 

@@ -1,0 +1,11 @@
+# Extra packages for the ONNX part of measure.py, on top of
+# product/ml/requirements.txt. The tests and flagman_ml do not need them.
+# Exact versions, as measured on 2026-11-27.
+onnx==1.23.2
+onnxruntime==1.32.0
+onnxmltools==1.16.0
+skl2onnx==1.20.0
+protobuf==7.36.2
+flatbuffers==25.12.19
+ml_dtypes==0.7.0
+typing_extensions==4.16.0

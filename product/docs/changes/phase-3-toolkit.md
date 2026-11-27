@@ -1,6 +1,7 @@
 # Phase 3 toolkit: state and handoff
 
-Status: work in progress, on draft branches. Date: 2026-11-27.
+Status: the toolkit is complete, on draft branches; the full campaign is
+the team's. Date: 2026-11-27.
 
 Seraj asked for the phase 3 toolkit ("detection quality") ahead of
 schedule: all the code, tests and documents needed to train and evaluate
@@ -27,7 +28,7 @@ the team when phase 3 starts.
 | 4 | `phase-3/04-models` | #6 (draft) | shortcut audit, LightGBM with temperature scaling, Isolation Forest, open-set rule, conformal false-alarm budget, drift monitor, model bundles, ADR 0014 | done |
 | 5 | `phase-3/05-evaluation` | #7 (draft) | evaluation harness (plans, folds and seeds, attacks left out, cross-dataset tests, metrics, mean ± std, paired tests) and reports written only from `results/*.json` | done |
 | 6 | `phase-3/06-suricata` | #8 (draft) | the Suricata comparison (`suricata -r`, EVE alerts matched to flows, Suricata scored in the evaluation), EVE test files recorded on the lab captures | done |
-| 7 | `phase-3/07-export-runbook` | – | model export (LightGBM text, ONNX if it works) and the runtime ADR draft; the runbook | next |
+| 7 | `phase-3/07-export-runbook` | #9 (draft) | model export (LightGBM text; ONNX tried), runtime measurements and ADR 0015 (draft), the runbook with its sizing runs | done |
 
 ## What is done
 
@@ -193,6 +194,39 @@ the team when phase 3 starts.
   same alerts in the same order but other `flow_id` values, so matching
   does not use `flow_id`.
 
+### 7. Export, runtime and runbook (`phase-3/07-export-runbook`)
+
+- `flagman_ml/export`: `python -m flagman_ml.export --model <bundle> --out
+  <folder> [--check FILES]` writes `classifier.txt` (LightGBM's text
+  model) and `export.json` (the 37 inputs in order, category codes, empty
+  values as NaN, classes, how raw scores become probabilities, the
+  temperature, thresholds and confidence, checksums, the LightGBM
+  version). `--check` reloads the text model, feeds it the numeric input
+  matrix and records the largest raw score difference from the bundle
+  (below 1e-12 on the lab model). The Isolation Forest is not exported.
+- `ml/experiments/model-runtime`: the classifier run three ways outside
+  Python, on made-up flows (`2026-11-27-measurements.json`). Generated C
+  code (`codegen.py`, written here) and LightGBM's C API both gave exactly
+  LightGBM's raw scores; ONNX Runtime gave probabilities within 8.6e-8.
+  Medians of 5 runs, one flow at a time on one thread: 5.5 µs per flow
+  for generated code, 31.9 µs for the C API, 31.8 µs for ONNX Runtime
+  (timed from Python). `bench_test.py` checks the two exact results in CI
+  with a C compiler only. The Isolation Forest converted to ONNX gave
+  scores within 2.6e-7.
+- [ADR 0015](../adr/0015-model-runtime.md), a draft: it proposes generated
+  code for both editions, with LightGBM's text file as the source, and
+  lists what to check before accepting it (the router, the Rust build, a
+  forest generator, how models are updated). Nothing in the sensor uses a
+  model yet.
+- [`ml/docs/runbook.md`](../../ml/docs/runbook.md): the campaign on a VM
+  with 2 to 4 CPUs and 1 to 8 GB, with commands, disk, time, memory, the
+  results layout and how to continue after a crash.
+  `ml/experiments/campaign-sizing` measured its numbers on the lab
+  captures repeated 320 times (102 MB) and on made-up training flows
+  (`2026-11-27-sizing.json`). Two findings shape it. Suricata's `eve.json`
+  was 4.1 times the capture with Ubuntu's default configuration, hence
+  "match, then compress". Training 1,000,000 flows peaked at 1,422 MB.
+
 ## What is tested
 
 | Pull request | Tests |
@@ -203,23 +237,31 @@ the team when phase 3 starts.
 | 4 | 66 new Python tests (145 in all, about 7 s): the conformal threshold (the k-th smallest score by hand, the paper's quantile, too few flows means no alert, the smallest calibration set, the false-alarm rate over 400 repetitions within the budget, a shifted network above it, α checked), the split by file, the forest's matrix, LightGBM with temperature scaling (probabilities sum to 1, the top class never changes, a too-sure model is softened, two classes, refusals, same data same model), the forest (attacks score higher), each branch of the decision, PSI, the alert-rate and score tests, the drift report, bundles (round trip, changed file refused, other library versions warn), training on made-up flows (report, the false-alarm rate on new normal flows under 7% for a 5% budget, known attacks named, an unseen attack still alerts, huge uploads called normal by the classifier come out `unknown_suspicious`, too few calibration flows, no normal calibration flow refused), predictions (columns, refusals of another flow table or schema), separability (the rank formula against scikit-learn with ties, a planted watched fingerprint flagged, categories), ablations (macro-F1 falls from 1.0 when the planted feature is removed), and the commands on the lab files (pipeline checks). Rust tests unchanged |
 | 5 | 31 new Python tests (176 in all, about 10 s): every metric on numbers checked by hand (intervals, detection at a false-alarm rate, too few normal flows, the two-score rule, Bayes' rule, ECE by hand and on bin edges, macro-F1 with `unknown_suspicious`, detection per class, alerts per day), mean ± std, Wilcoxon (smallest p-value with 5 pairs), exact McNemar, plans (the example plan loads; seven kinds of mistakes refused), a whole plan on made-up days (runs written once, leave-one-out runs, unseen classes, summary, runs not run twice), the report (every number from its source files; changed run files refused), calibration flows of an untrained class set aside. Rust tests unchanged |
 | 6 | 29 new Python tests (205 in all, about 10 s): the recorded files name the committed rules and captures (checksums), reading EVE lines (the recorded alerts, times with a zone offset, ICMP without ports, other protocols, gzip, four kinds of broken lines named by number), matching on hand-checked flows (answer side first, the later of two flows with the same ends, a time cut to the millisecond, ports, protocols, the tolerance and the nearer flow), counts per flow, the runner with a stand-in program (the documented command, `run.json`, failures), the commands on the recorded lab files (every alert matched, alerted flows per class, refusals), and Suricata scored in a whole plan on made-up days with made-up alerts. Suricata itself is not needed by the tests. |
+| 7 | 7 new Python tests (212 in all, about 15 s): the export (category codes and empty values in the input matrix, an exact reload for three classes and for two, the command on the lab model with its refusal to overwrite), generated C code and the C API program giving exactly LightGBM's raw scores on 300 made-up flows with empty values (needs a C compiler; skipped without one), and the long capture of the sizing runs. The ONNX part of the measurements needs extra packages and is not part of the tests. Rust tests unchanged |
 
 ## What is left, in order
 
-1. **Model export and runbook** (`phase-3/07-export-runbook`): LightGBM
-   text export, ONNX if it works (onnxmltools from PyPI, which this
-   session can reach), the runtime ADR draft (code generation, ONNX
-   Runtime, LightGBM C API) with small measurements, no Rust wiring; then
-   `ml/docs/runbook.md` for a VM with 2 to 4 virtual CPUs and 1 to 8 GB.
-2. **Checks when the data is downloaded** (by the team; this session's
+1. **Review and merge** (the team): #2 into `main`, then #3 to #9 in
+   order, each rebased on `main` after phase 2. Never merged by Claude.
+2. **Checks when the data is downloaded** (the team; this session's
    network could not reach the dataset servers): record every SHA-256 in
    the manifests; check the UNSW-NB15 ground truth's name, columns and time
    format; read the Engelen et al. download page and finish
    `cic-ids2017.toml`; find the CTU-13 time offset with `offsets`; pick one
-   small MAWI trace. Then run Suricata with ET Open on the test captures
-   (`sudo suricata-update`, then `python -m flagman_ml.suricata run`, with
-   `--home-net` set to each dataset's internal networks) and list the
-   Suricata files in the plans.
+   small MAWI trace; write the evaluation plans from the real file names.
+3. **The campaign**, with [the runbook](../../ml/docs/runbook.md),
+   including Suricata with ET Open (`sudo suricata-update`, then
+   `python -m flagman_ml.suricata run` with `--home-net` set to each
+   dataset's internal networks).
+4. **Decide ADR 0015** with the campaign's models: measure on the router
+   (phase 2.5), choose how Rust builds the generated code, write the
+   Isolation Forest generator and its exact-score test, and decide how
+   models are updated. Wiring the model into `flagmand` comes after that,
+   in a later phase.
+5. Optional, CI: the "Install libpcap" step failed once on #3 because the
+   runner image's Microsoft package source answered 403 (it passed on the
+   one re-run). The step could refresh only Ubuntu's package lists; to
+   check on a runner first.
 
 ## Known limits
 
@@ -297,6 +339,17 @@ the team when phase 3 starts.
 - Matching needs the same capture for both tools (checked by name through
   `run.json`) and assumes Suricata's alert time is the time of a packet of
   the flow, as it was for every lab alert.
+- The runtime measurements used made-up flows on one shared x86-64 cloud
+  machine, not the router. ONNX Runtime was timed from Python only, and
+  the C API one flow per call only. Library sizes are those of the PyPI
+  packages for x86-64.
+- `codegen.py` follows LightGBM v4.7.0's split rules (numbers, categories,
+  missing values) and was checked on made-up flows only. Generated Rust
+  was not tried, and the Isolation Forest has no generator yet.
+- The runbook's numbers come from small runs: the lab captures repeated
+  (small packets, and flows that compress far better than real ones) and
+  made-up training flows. Nothing was run on a full dataset, and
+  Suricata-Update and ET Open are untested here.
 
 ## Files to review first
 
@@ -357,22 +410,34 @@ Pull request 6:
 5. The Suricata parts of `evaluation/evaluate.py`, `run.py`, `summary.py`
    and `reports/evaluation.py`
 
+Pull request 7:
+
+1. [ADR 0015 (draft)](../adr/0015-model-runtime.md)
+2. `ml/flagman_ml/export/README.md`, then `lightgbm_text.py` with
+   `lightgbm_text_test.py`
+3. `ml/experiments/model-runtime/codegen.py` with `bench_test.py` (the
+   split rules, checked against LightGBM)
+4. `ml/docs/runbook.md`, with `ml/experiments/campaign-sizing/README.md`
+   for where its numbers come from
+
 ## Prompt for the next session
 
 ```text
-You are continuing the Flagman phase 3 toolkit in FlagmanSec/Flagman.
+You are continuing the Flagman phase 3 toolkit in FlagmanSec/Flagman. The
+toolkit is complete on seven draft pull requests (#3 to #9, stacked on #2).
 Read product/docs/changes/phase-3-toolkit.md first: it lists the branches,
-what is done and tested, and what is left in order. Read the phase 3
-prompt (Flagman_phase3_toolkit_prompt.md in the project files) for the
-rules: files under ~300 lines, a README per folder, tests next to the
-code, every number from a results/*.json file, small runs are "pipeline
-check, not a result", verify and link every fact about datasets and
-tools, never write "guaranteed", defensive work only, free tools only,
-downloads under ~5 GB. Python lives in product/ml (python -m pytest
-there, Python 3.13, requirements.txt pinned). Every push includes a
-context .docx and its .md copy in product/docs/context/. Never merge; open draft pull requests, each
-branch based on the previous one (phase-3/NN-name). Continue with the
-first item of "What is left" (the model export and the runbook, on branch
-phase-3/07-export-runbook from phase-3/06-suricata), and update this file
-with every pull request.
+what is done and tested, what is left in order, and the known limits.
+Read the phase 3 prompt (Flagman_phase3_toolkit_prompt.md in the project
+files) for the rules: files under ~300 lines, a README per folder, tests
+next to the code, every number from a results file, small runs are
+"pipeline check, not a result", verify and link every fact, never write
+"guaranteed", defensive work only, free tools only, downloads under
+~5 GB. Python lives in product/ml (python -m pytest there, Python 3.13,
+requirements.txt pinned). Every push includes a context .docx and its .md
+copy in product/docs/context/. Never merge and never force-push.
+Start by reading the open review comments and CI on #2 to #9 and answer
+them on the branch they concern; a fix on a lower branch is merged up
+into the branches above it. When the team has downloaded a dataset, help
+with the checks of item 2 of "What is left" and follow
+product/ml/docs/runbook.md. Update this file with every pull request.
 ```
