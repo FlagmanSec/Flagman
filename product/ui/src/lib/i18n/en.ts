@@ -162,11 +162,13 @@ const en = {
   'why.port_scan': 'A port scan is often the first step of an attack: it shows which programs on a device can be reached from the network.',
   'why.host_sweep': 'A sweep lists the devices on your network. Attackers do it to choose targets, but some normal tools (routers, network apps) do it too.',
   'why.brute_force': 'Servers close the connection after wrong passwords, so many short or refused connections to a login service usually mean someone is guessing passwords. One correct guess opens the device to them.',
+  'why.brute_force_outbound': 'Here the guesser is one of your own devices, and the server is on the internet. If it is not one of your tools, the device may be infected and used to attack others, and those servers may then block your internet address.',
   'why.signature': 'Suricata compares traffic with rules written for known attacks and suspicious behaviour, and this traffic matched one.',
 
   'check.port_scan': 'Do you know {src}? If it is your own scan or a security tool, mark this incident as a false positive. If not, find the device in your router’s list of connected devices and disconnect it.',
   'check.host_sweep': 'If {src} is your router or a known network app, add it to ignore_sources in flagman.toml so it is not reported again. Otherwise, treat it like an unknown device.',
-  'check.brute_force': 'Look at the login log of {dst} (for SSH: journalctl -u ssh). Failed logins confirm it. If you see your own scripts logging in again and again (git, Ansible), add {src} to ignore_sources in flagman.toml. Use strong passwords or keys, and do not expose this service to the internet.',
+  'check.brute_force': 'Look at the login log of {dst} (for SSH: journalctl -u ssh). Failed logins confirm it. If it is your own script logging in again and again (git, Ansible), add an exception for this login only, under [detect.brute_force] in flagman.toml: ignore_logins = [{ source = "{src}", target = "{dst}", port = {port} }]. Use strong passwords or keys, and do not expose this service to the internet.',
+  'check.brute_force_outbound': 'Find out what runs on {src}: a script, a backup or sync tool, or a program you do not know. If it is your own tool, add an exception for this login only, under [detect.brute_force] in flagman.toml: ignore_logins = [{ source = "{src}", target = "{dst}", port = {port} }]. If you do not recognise it, disconnect {src} from the network and check it for malware.',
   'check.signature': 'Search for rule {sid} to read what it detects, and look at the connections below for anything you do not recognise.',
 
   'method.arp': 'ARP requests',

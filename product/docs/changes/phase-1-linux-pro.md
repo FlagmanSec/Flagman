@@ -92,6 +92,18 @@ Checked for these changes, besides the table above:
 - the **Detector saturated** item was looked at in screenshots in English,
   French (dark theme) and Arabic.
 
+## Follow-ups after the merge
+
+Three points from the follow-up review, in their own pull request. The
+full story is in
+[the follow-ups context document](../context/2026-11-26-phase-1-followups.md).
+
+| Point | What changed | Checked by |
+|---|---|---|
+| A home device guessing passwords on internet servers was never reported | Internet servers are watched again, with their own threshold: 30 failed attempts a minute (`outbound_min_attempts`). Git over SSH stays quiet | `guessing_passwords_on_an_internet_server_is_reported` (fails with the old default), `quick_logins_to_an_internet_server_stay_silent`, `local_targets_only_turns_the_internet_watch_off`; [ADR 0011](../adr/0011-watch-logins-to-internet-servers.md) |
+| The advice told owners to silence a script's device with `ignore_sources`, which also hid its scans | New `ignore_logins` setting (source, target, port), for the login rule only. The advice points there in English, French and Arabic | `ignore_logins_silences_one_login_and_nothing_else`, a configuration test, two dashboard tests |
+| A heavy flood can end a login attempt before it is counted | No detector change: a test pins the limit, and phase 2 measures it on the router | `engine_flood_tests.rs` (known limit 8 below) |
+
 ## Known limits
 
 1. On one PC, Flagman sees that PC's traffic and the network's broadcasts,
@@ -103,11 +115,22 @@ Checked for these changes, besides the table above:
 5. A quick successful login to an SSH server inside the home network looks
    like a failed one, so scripts that log in often to a machine at home can
    raise a login alert ([ADR 0009](../adr/0009-login-attempts-from-finished-connections.md)).
+   One `ignore_logins` entry silences that login.
 6. "Inside the home network" means a private address; a home that uses
    public IPv6 addresses is not recognised yet.
 7. Not tested yet: a real home network, Wi-Fi interfaces, runs of several
    days, memory and processor use under heavy traffic, and Suricata's log
    permissions on a real installation.
+8. A flood of new connections that fills the flow table can end a login
+   attempt while it waits for the server's answer; the attempt is then not
+   counted. With a 1,000-flow table, logins are lost from 320 new
+   connections per second; with the default 100,000 flows the same
+   mechanism gives about 31,000 (`engine_flood_tests.rs`). Phase 2
+   measures it on the router ([plan](../phase-2-plan.md), 2.6).
+9. Password guessing on an internet server is reported only from 30
+   attempts a minute on that server: slower guessing, and spraying a few
+   tries over many servers, are not
+   ([ADR 0011](../adr/0011-watch-logins-to-internet-servers.md)).
 
 ## Next steps
 

@@ -11,7 +11,7 @@ mod signature;
 mod tracker;
 mod window;
 
-pub use config::{BruteForceConfig, DetectConfig, HostSweepConfig, PortScanConfig};
+pub use config::{BruteForceConfig, DetectConfig, HostSweepConfig, LoginException, PortScanConfig};
 pub use signature::SignatureHit;
 pub use tracker::{Evictions, Finding, Tracker, TrackerConfig};
 pub use window::DistinctWindow;
@@ -100,3 +100,7 @@ impl Detectors {
 #[cfg(test)]
 #[path = "detectors_tests.rs"]
 mod tests;
+
+#[cfg(test)]
+#[path = "login_tests.rs"]
+mod login_tests;

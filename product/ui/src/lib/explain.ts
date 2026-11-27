@@ -54,20 +54,32 @@ export interface Advice {
   check: string;
 }
 
-/** "Why it matters" and "What to check", once per kind of alert, in story order. */
+/**
+ * "Why it matters" and "What to check", once per kind of alert, in story order.
+ * Login attempts on an internet server get their own advice: there, the
+ * guesser is one of your own devices.
+ */
 export function advice(alerts: readonly AlertRow[], tr: Translate): Advice[] {
-  const seen = new Set<AlertKind>();
+  const seen = new Set<AdviceTopic>();
   const result: Advice[] = [];
   for (const { alert } of storyLines(alerts, tr, String)) {
-    if (seen.has(alert.kind)) continue;
-    seen.add(alert.kind);
+    const topic = adviceTopic(alert);
+    if (seen.has(topic)) continue;
+    seen.add(topic);
     const sid = alert.details.type === 'signature' ? alert.details.signature_id : '';
-    const params = { src: alert.src_ip, dst: alert.dst_ip ?? '?', sid };
+    const params = { src: alert.src_ip, dst: alert.dst_ip ?? '?', port: alert.dst_port ?? '?', sid };
     result.push({
       kind: alert.kind,
-      why: tr(`why.${alert.kind}`),
-      check: tr(`check.${alert.kind}`, params),
+      why: tr(`why.${topic}`),
+      check: tr(`check.${topic}`, params),
     });
   }
   return result;
+}
+
+type AdviceTopic = AlertKind | 'brute_force_outbound';
+
+function adviceTopic(alert: AlertRow): AdviceTopic {
+  const outbound = alert.details.type === 'brute_force' && alert.details.outbound === true;
+  return outbound ? 'brute_force_outbound' : alert.kind;
 }

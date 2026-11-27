@@ -224,7 +224,9 @@ one, note:
 - the day, the kind of alert and the host;
 - whether it was real or a false alarm, and if false, what caused it (for
   example a router drawing its device map, or your own scripts logging in to
-  a machine at home with git or Ansible, which can look like login attempts);
+  a machine at home with git or Ansible, which can look like login attempts;
+  a script is silenced with one `ignore_logins` entry, as the alert page
+  explains);
 - whether **Detector saturated** ever appeared in the top strip, and when.
 
 Mark each false alarm **False positive** on its page. These numbers are what
@@ -255,5 +257,5 @@ Copy this table into your notes or the team chat:
 | The dashboard says "The sensor does not answer" | The service stopped | `journalctl -u flagman -n 50` shows why |
 | **Packets seen** stays at 0 | Wrong interface | Step 1 |
 | No sweep alert | nmap ran without `sudo`, or the tester is on another network (guest Wi-Fi) | Step 3 with `sudo`, same network as the sensor |
-| No alert at all, but packets are counted | The tester's address is in `ignore_sources` | Check `flagman.toml` |
+| No alert at all, but packets are counted | The tester's address is in `ignore_sources` (or, for login attempts only, in `ignore_logins`) | Check `flagman.toml` |
 | The dashboard asks for the token again | The browser keeps it for one tab only, unless you paste it and tick **Remember on this computer** | `sudo flagmand token` prints the link again |

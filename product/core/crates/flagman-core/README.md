@@ -18,5 +18,7 @@ timestamps, so a replayed capture behaves exactly like live traffic.
 Start with `engine.rs`, then follow the order in
 [docs/reading-order.md](../../../docs/reading-order.md).
 
-Tests sit next to the code (`mod tests`) and in `detect/detectors_tests.rs`
-and `flow/table_tests.rs`. Run them with `cargo test -p flagman-core`.
+Tests sit next to the code (`mod tests`) and in `detect/detectors_tests.rs`,
+`detect/login_tests.rs` (the login rule), `flow/table_tests.rs` and
+`engine_flood_tests.rs` (a known limit under a flood). Run them with
+`cargo test -p flagman-core`.

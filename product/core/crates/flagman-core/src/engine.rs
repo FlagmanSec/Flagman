@@ -242,6 +242,10 @@ impl Engine {
 }
 
 #[cfg(test)]
+#[path = "engine_flood_tests.rs"]
+mod flood_tests;
+
+#[cfg(test)]
 mod tests {
     use super::*;
     use crate::alert::AlertKind;
