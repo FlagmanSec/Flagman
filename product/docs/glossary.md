@@ -117,6 +117,9 @@ Sorted by theme, then alphabetically.
 | **Confidence interval** | The range of values a measured share is compatible with. Flagman uses exact (Clopper-Pearson) intervals at 95%. |
 | **Paired test (Wilcoxon, McNemar)** | Tests that compare two methods on the same runs (Wilcoxon signed-rank) or on the same flows (McNemar), so that the difference is not chance. |
 | **Model bundle** | The folder `train` writes: the models (`model.joblib`) and `bundle.json`, which says what they were trained on, their thresholds, and the model file's checksum. |
+| **ET Open** | The Emerging Threats Open rule set for Suricata, downloaded by `suricata-update`. The comparison with Suricata is meant to use it; the lab test files use two local rules instead. |
+| **HOME_NET** | Suricata's name for the networks it protects. Many rules only look at traffic towards it, so it must name the dataset's internal networks. |
+| **Unmatched alert** | A Suricata alert that no Flagman flow holds (no flow with the same ends and protocol at that time). Counted and reported, never dropped. |
 
 ## Product names
 

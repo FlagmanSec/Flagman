@@ -6,8 +6,11 @@ back to a run file.
 
 - **main**: for each metric, the mean and standard deviation over the
   runs that left nothing out (every fold and seed).
-- **paired**: Flagman's two-score rule against each score alone, paired
-  by run (Wilcoxon signed-rank), on detection and on false alarms.
+- **paired**: Flagman's two-score rule against each score alone, and
+  against Suricata when the runs have it, paired by run (Wilcoxon
+  signed-rank), on detection and on false alarms.
+- **by_class**: for each attack class, the mean share of its test flows
+  that raised an alert, with Flagman and with Suricata.
 - **left_out**: for each attack class left out of training, how often its
   test flows still raised an alert, and what they were called.
 """
@@ -36,6 +39,12 @@ METRICS = {
     "ECE, before calibration": ("calibration", "uncalibrated", "ece"),
     "temperature": ("calibration", "temperature"),
 }
+SURICATA = {
+    "false alarms, Suricata": ("rules", "suricata", "false_alarms", "rate"),
+    "detection, Suricata": ("rules", "suricata", "detection", "rate"),
+    **{f"precision at base rate {b}, Suricata": ("suricata", "precision", str(b))
+       for b in BASE_RATES},
+}
 PAIRED = (("detection", "detection"), ("false alarms", "false_alarms"))
 
 
@@ -58,17 +67,21 @@ def summarise(folder: Path) -> dict:
     if not runs:
         raise ValueError(f"{folder}: no run files")
     main = [run for _, run in runs if not run["left_out"]]
+    suricata = any(value(run, ("rules", "suricata")) is not None for run in main)
+    metrics = {**METRICS, **(SURICATA if suricata else {})}
+    others = ("classifier only", "anomaly only", *(("suricata",) if suricata else ()))
     summary = {
         "plan": runs[0][1]["plan"],
         "alpha": runs[0][1]["metrics"]["budget"]["alpha"],
         "confidence": CONFIDENCE,
         "runs": {name: sha256_of(folder / "runs" / name) for name, _ in runs},
         "main": {label: mean_std([value(run, path) for run in main])
-                 for label, path in METRICS.items()},
+                 for label, path in metrics.items()},
         "paired": {f"{what}: two scores vs {other}": wilcoxon(
             [value(run, ("rules", "two scores", key, "rate")) for run in main],
             [value(run, ("rules", other, key, "rate")) for run in main])
-            for what, key in PAIRED for other in ("classifier only", "anomaly only")},
+            for what, key in PAIRED for other in others},
+        "by_class": by_class(main),
         "left_out": left_out([run for _, run in runs if run["left_out"]]),
         # Runs with enough normal test flows to measure each false-alarm rate:
         # with fewer, "detection at 0.1%" really means "at no false alarm".
@@ -77,6 +90,17 @@ def summarise(folder: Path) -> dict:
                         for run in main) for t in FPR_TARGETS},
     }
     return summary
+
+
+def by_class(runs: list[dict]) -> dict:
+    """For each attack class of the test files: the mean share that raised an
+    alert, with Flagman's two scores and with Suricata (None without it)."""
+    names = sorted({name for run in runs for name in run["metrics"]["by_class"]})
+    return {name: {"flagman": mean_std([value(run, ("by_class", name, "alerted"))
+                                        for run in runs]),
+                   "suricata": mean_std([value(run, ("suricata", "by_class", name, "alerted"))
+                                         for run in runs])}
+            for name in names}
 
 
 def left_out(runs: list[dict]) -> dict:

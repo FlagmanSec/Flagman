@@ -10,6 +10,7 @@ captures, not written by hand.
 | `lab-ssh-logins.parquet` | features of the 24 SSH connections of `lab-ssh-logins.pcap` |
 | `lab-ground-truth.csv` | what each step of the lab recordings was: the lab's ground truth |
 | `make-fixtures.sh` | rebuilds the three feature files with `flagmand extract` |
+| `suricata/` | Suricata's alerts on the three lab captures, recorded (see below) |
 
 The captures and what happens in them are described in
 [product/core/testdata/pcap/README.md](../../core/testdata/pcap/README.md).
@@ -59,3 +60,29 @@ no attack, so its flows get the mapping's default label, normal.
 Labelling the three files gives 1,000 scan, 28 brute_force and 53 normal
 flows, with no conflict (`flagman_ml/labels/cli_test.py` checks these
 numbers).
+
+## The Suricata files
+
+`suricata/<capture>/eve.json.gz` is the `eve.json` that Suricata 7.0.3
+wrote for each lab capture, unchanged, compressed with `gzip -9 -n`;
+`run.json` next to it records the version, the command and the checksums
+(capture, rules, configuration). They were **recorded** on 2026-11-27 by
+`suricata/make-suricata-fixtures.sh`, not written by hand.
+
+The rules are the two of `suricata/local.rules`, written for this check:
+many connection requests from one host in 10 seconds, and many SSH
+connection requests in 60 seconds. They are **not ET Open**: the ET Open
+rules server was out of reach of the session that recorded the files. The
+alerts check the code (reading, matching, scoring); they say nothing about
+how well Suricata detects with ET Open.
+
+Matched to the lab flows (`flagman_ml/suricata/cli_test.py`): every one of
+the 1,035 alerts lands on a flow. The rules raise alerts on 15 of 15
+password-guessing flows and 980 of 1,000 scan flows of the attack chain,
+but also on 20 of the 42 normal flows of `lab-normal-traffic` (its 40 web
+page loads in 10 seconds are many connection requests from one host) and
+2 of the 11 normal flows of `lab-ssh-logins`.
+
+Run `suricata/make-suricata-fixtures.sh` again (with Suricata installed)
+when the captures or the rules change. CI does not run Suricata: the
+tests read these files.

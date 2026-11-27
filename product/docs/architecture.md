@@ -204,7 +204,18 @@ plans/*.toml ──> evaluation/run.py ──> results/evaluation/<plan>/runs/*.
                                                 └─> reports/ ──> report.md
 ```
 
-The Suricata comparison, the model export and the runbook come next
+`flagman_ml/suricata` compares with Suricata on the same captures: it runs
+`suricata -r`, reads the alerts of its EVE file, and gives each alert to
+the Flagman flow that holds its packet. A plan that lists these Suricata
+files scores Suricata as a fourth way of deciding, on the same test flows:
+
+```text
+capture.pcap ──> flagmand extract ──────────────> day.parquet ──┐
+             └─> suricata/run.py ──> eve.json ──> match.py ─────┴─> day-suricata.parquet
+                                                                     └─> evaluation/run.py
+```
+
+The model export and the runbook come next
 ([handoff](changes/phase-3-toolkit.md)).
 
 ## Threads and shutdown

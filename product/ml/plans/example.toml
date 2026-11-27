@@ -21,6 +21,9 @@ threads = 2
 labels = "results/labels/first-dataset.parquet"
 flows = ["flows/first/day1.parquet", "flows/first/day2.parquet",
          "flows/first/day3.parquet", "flows/first/day4.parquet"]
+# Optional: Suricata's verdict on test files (python -m flagman_ml.suricata
+# match). A fold whose test files all have one also scores Suricata.
+suricata = ["results/suricata/first/day4.parquet"]
 
 [datasets.second]
 labels = "results/labels/second-dataset.parquet"

@@ -52,3 +52,5 @@ def test_the_example_plan_in_the_repository_loads():
     plan = load_plan(ML_ROOT / "plans" / "example.toml")
     assert [fold.name for fold in plan.folds] == ["test-day4", "test-second-dataset"]
     assert plan.locate("capture-a.parquet")[0].name == "second"
+    assert [p.name for p in plan.datasets["first"].suricata] == ["day4.parquet"]
+    assert plan.datasets["second"].suricata == ()

@@ -1,0 +1,34 @@
+{
+  "capture": {
+    "name": "lab-attack-chain.pcap",
+    "sha256": "0163907d511255a973b56d8c0dc017cc4f10b5da0b86d6683596c3ed080cf8b6"
+  },
+  "command": [
+    "suricata",
+    "-c",
+    "/etc/suricata/suricata.yaml",
+    "-r",
+    "../core/testdata/pcap/lab-attack-chain.pcap",
+    "-S",
+    "fixtures/suricata/local.rules",
+    "-l",
+    "fixtures/suricata/lab-attack-chain",
+    "-k",
+    "none",
+    "--runmode",
+    "single",
+    "--set",
+    "vars.address-groups.HOME_NET=[192.168.77.0/24]"
+  ],
+  "config": {
+    "name": "/etc/suricata/suricata.yaml",
+    "sha256": "b23ef3fb06d8189f383c585b749bb9b0b156dbd7588361b49164df7d12e1f2d9"
+  },
+  "home_net": "[192.168.77.0/24]",
+  "recorded_utc": "2026-11-27T01:56:49+00:00",
+  "rules": {
+    "name": "local.rules",
+    "sha256": "af30a5604c21834211eaf38e729d283f77d7e0dffa202020dfa047108c3890e0"
+  },
+  "suricata": "This is Suricata version 7.0.3 RELEASE"
+}

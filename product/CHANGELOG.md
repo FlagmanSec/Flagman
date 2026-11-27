@@ -69,6 +69,13 @@ starts. Details: [docs/changes/phase-3-toolkit.md](docs/changes/phase-3-toolkit.
 - `python -m flagman_ml.reports`: Markdown reports written only from the
   results JSON files, naming them with their checksums; a test checks that
   every number of a report is a value of those files.
+- `python -m flagman_ml.suricata run | match`: Suricata on the same captures
+  (`suricata -r`, its version and the checksums of the capture, rules and
+  configuration recorded in `run.json`), its EVE alerts matched to
+  Flagman's flows by ends, protocol and packet time (unmatched alerts
+  counted), and scored in the evaluation as a fourth way of deciding.
+  Test files recorded with Suricata 7.0.3 on the lab captures, with two
+  local rules (ET Open was out of reach).
 
 ### Changed (phase 3 toolkit)
 

@@ -9,7 +9,10 @@ Three ways of deciding are compared on the same flows:
 
 - ``two scores``: Flagman's rule (each score at α/2, see models/openset.py);
 - ``classifier only``: suspicion alone, at α;
-- ``anomaly only``: the anomaly score alone, at α.
+- ``anomaly only``: the anomaly score alone, at α;
+- ``suricata``, when the test files have Suricata files: a flow holding at
+  least one Suricata alert (see flagman_ml/suricata). Suricata has no score
+  to move, so it has no "detection at a false-alarm rate".
 """
 
 from __future__ import annotations
@@ -40,6 +43,8 @@ def evaluate(frame: pd.DataFrame, predictions: pd.DataFrame, models: dict, schem
     rules = {"two scores": (p["decision"] != "normal").to_numpy(),
              "classifier only": p["suspicion"].to_numpy() > alone["suspicion"],
              "anomaly only": p["anomaly"].to_numpy() > alone["anomaly"]}
+    if "suricata_alerts" in frame:  # a flow holding at least one Suricata alert
+        rules["suricata"] = frame.loc[keep, "suricata_alerts"].to_numpy() > 0
     right = {name: alert == attack for name, alert in rules.items()}
     scores = {"suspicion": p["suspicion"].to_numpy(), "anomaly": p["anomaly"].to_numpy()}
     known = set(models["classifier"].classes_)
@@ -71,7 +76,20 @@ def evaluate(frame: pd.DataFrame, predictions: pd.DataFrame, models: dict, schem
         "by_class": m.detection_by_class(truth, p["decision"]),
         "calibration": calibration(frame[keep], p, models, schema, known),
         "alerts_per_day": per_day,
+        "suricata": suricata(frame, truth, rules, normal, attack) if "suricata" in rules else None,
     }
+
+
+def suricata(frame: pd.DataFrame, truth: pd.Series, rules: dict, normal: np.ndarray,
+             attack: np.ndarray) -> dict:
+    """Suricata scored like Flagman: precision, each attack class, alerts per day."""
+    alert = rules["suricata"]
+    classes = truth[truth != "normal"].value_counts().sort_index()
+    return {"precision": precision(alert, normal, attack),
+            "by_class": {name: {"flows": int(n),
+                                "alerted": float(alert[(truth == name).to_numpy()].mean())}
+                         for name, n in classes.items()},
+            "alerts_per_day": m.alerts_per_day(frame, frame["suricata_alerts"].to_numpy() > 0)}
 
 
 def precision(alert: np.ndarray, normal: np.ndarray, attack: np.ndarray) -> dict:

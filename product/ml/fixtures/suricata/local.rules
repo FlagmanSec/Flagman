@@ -1,0 +1,14 @@
+# Two local rules, written for the Suricata pipeline check on the lab
+# captures (product/ml/fixtures/README.md). They are not ET Open: the ET
+# Open rules server was out of reach of the session that recorded the test
+# files.
+#
+# detection_filter alerts "on every match after an initial threshold has
+# been reached" (Suricata documentation, "Thresholding Keywords").
+#
+# 1000001: every TCP connection request (SYN) after the 20th that one host
+# sends to HOME_NET within 10 seconds, whatever the port.
+alert tcp any any -> $HOME_NET any (msg:"FLAGMAN-LAB many connection attempts from one host"; flow:stateless; flags:S,12; detection_filter:track by_src, count 20, seconds 10; classtype:attempted-recon; sid:1000001; rev:1;)
+# 1000002: every SSH connection request after the 5th that one host sends
+# within 60 seconds.
+alert tcp any any -> $HOME_NET 22 (msg:"FLAGMAN-LAB many SSH connections from one host"; flow:stateless; flags:S,12; detection_filter:track by_src, count 5, seconds 60; classtype:attempted-admin; sid:1000002; rev:1;)

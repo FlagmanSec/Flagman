@@ -31,6 +31,7 @@ from flagman_ml.models.bundle import library_versions, schema_record
 from flagman_ml.models.classifier import ClassifierSettings
 from flagman_ml.models.predict import predict
 from flagman_ml.models.train import TrainSettings, train
+from flagman_ml.suricata.store import attach_suricata
 
 
 def load_labelled(plan: Plan, names: tuple[str, ...]) -> tuple[pd.DataFrame, Schema, dict, list]:
@@ -46,11 +47,26 @@ def load_labelled(plan: Plan, names: tuple[str, ...]) -> tuple[pd.DataFrame, Sch
             schema, table = flows.schema, flows.flow_table
         elif flows.schema != schema or flows.flow_table != table:
             raise PlanError(f"{dataset_name}: other feature schema or flow table settings")
-        labelled = attach_labels(flows, plan.datasets[dataset_name].labels)
+        dataset = plan.datasets[dataset_name]
+        labelled = attach_labels(flows, dataset.labels)
+        labelled, used = attach_suricata(flows, labelled, list(dataset.suricata))
+        suricata = {item["flow_file"]: item for item in used}
         frames.append(labelled.assign(dataset=dataset_name))
-        files += [{"name": f.name, "dataset": dataset_name, "sha256": f.sha256}
-                  for f in flows.files]
+        files += [{"name": f.name, "dataset": dataset_name, "sha256": f.sha256,
+                   "suricata": suricata.get(f.name)} for f in flows.files]
     return pd.concat(frames, ignore_index=True), schema, table, files
+
+
+def with_suricata(test: pd.DataFrame, fold: Fold) -> pd.DataFrame:
+    """The test flows, with Suricata's columns only if every test file has them."""
+    if "suricata_alerts" not in test:
+        return test
+    missing = test["suricata_alerts"].isna()
+    if missing.any():
+        names = ", ".join(sorted(set(test.loc[missing, "source"])))
+        raise PlanError(f"fold {fold.name}: no Suricata file for {names}: add one to the "
+                        "plan, or remove the others")
+    return test.astype({"suricata_alerts": "int64"})
 
 
 def settings(plan: Plan, seed: int) -> TrainSettings:
@@ -72,6 +88,7 @@ def run_one(plan: Plan, fold: Fold, seed: int, left_out: str | None = None) -> d
     test, test_schema, test_table, test_files = load_labelled(plan, fold.test)
     if test_schema != schema or test_table != table:
         raise PlanError(f"fold {fold.name}: test files of another schema or flow table")
+    test = with_suricata(test, fold)
     metadata = {"schema": schema_record(schema), "flow_table": table}
     predictions = predict(models, metadata, Flows(test, schema, table))
     return {"plan": plan.name, "fold": fold.name, "seed": seed, "left_out": left_out,

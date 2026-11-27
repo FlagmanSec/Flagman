@@ -1,0 +1,34 @@
+{
+  "capture": {
+    "name": "lab-normal-traffic.pcap",
+    "sha256": "eb6f814b64f6227154bf0a7fc9cd863564f09777cd2c475c32b02bf47af920a2"
+  },
+  "command": [
+    "suricata",
+    "-c",
+    "/etc/suricata/suricata.yaml",
+    "-r",
+    "../core/testdata/pcap/lab-normal-traffic.pcap",
+    "-S",
+    "fixtures/suricata/local.rules",
+    "-l",
+    "fixtures/suricata/lab-normal-traffic",
+    "-k",
+    "none",
+    "--runmode",
+    "single",
+    "--set",
+    "vars.address-groups.HOME_NET=[192.168.77.0/24]"
+  ],
+  "config": {
+    "name": "/etc/suricata/suricata.yaml",
+    "sha256": "b23ef3fb06d8189f383c585b749bb9b0b156dbd7588361b49164df7d12e1f2d9"
+  },
+  "home_net": "[192.168.77.0/24]",
+  "recorded_utc": "2026-11-27T01:56:49+00:00",
+  "rules": {
+    "name": "local.rules",
+    "sha256": "af30a5604c21834211eaf38e729d283f77d7e0dffa202020dfa047108c3890e0"
+  },
+  "suricata": "This is Suricata version 7.0.3 RELEASE"
+}
