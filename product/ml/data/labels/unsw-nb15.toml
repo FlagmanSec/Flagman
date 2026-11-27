@@ -1,0 +1,33 @@
+# UNSW-NB15: the ground truth of the raw captures (not the ready-made CSV
+# features, which Flagman never uses: Python reads only flagmand's files).
+# Facts and links: product/ml/data/README.md.
+dataset = "unsw-nb15"
+source = "https://research.unsw.edu.au/projects/unsw-nb15-dataset"
+format = "unsw_gt"
+# The official page calls the file UNSW-NB15_GT.csv; the COMIDDS description
+# shows NUSW-NB15_GT.csv. Check the name when downloading.
+ground_truth = ["UNSW-NB15_GT.csv", "NUSW-NB15_GT.csv"]
+# The ground truth lists attacks only: every other flow is normal traffic.
+default_label = "normal"
+time_zone = "UTC"
+time_offset_ms = 0
+# Ground-truth times are whole seconds (each window already covers its last
+# second); one more second absorbs small clock differences.
+time_tolerance_ms = 1000
+notes = """Draft until checked on the real file: the column names come from the COMIDDS \
+description, and 'times are seconds since 1970' is our reading of its sample rows. On the \
+first capture, run `python -m flagman_ml.labels offsets` and keep time_offset_ms = 0 only \
+if 0 wins clearly. Reconnaissance maps to scan, Flagman's class for looking for machines \
+and open ports."""
+
+[classes]
+Fuzzers = "fuzzers"
+Analysis = "analysis"
+Backdoors = "backdoor"
+Backdoor = "backdoor"
+DoS = "dos"
+Exploits = "exploit"
+Generic = "generic"
+Reconnaissance = "scan"
+Shellcode = "shellcode"
+Worms = "worm"

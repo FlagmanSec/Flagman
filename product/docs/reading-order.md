@@ -75,3 +75,18 @@ On the phase 3 branches only, until phase 3 starts. Read
 | 7 | [ADR 0013](adr/0013-feature-files-in-parquet-from-an-optional-crate.md), then `flagmand/src/extract.rs` | `flagmand extract`: the replay path with `Engine<FeatureState>`, written to a file |
 | 8 | `flagman-parquet/README.md`, `src/columns.rs`, `src/writer.rs` | the columns of a feature file, its footer, and why the same capture gives the same bytes |
 | 9 | `flagman-core/src/flow/table.rs` (`in_start_order`, `make_room`) and `flagmand/tests/extract.rs` | ties broken by flow key; two runs of the program compared byte for byte |
+
+## 7. Phase 3: labelled data, in Python (40 minutes)
+
+On the phase 3 branches only. Everything is in [`ml/`](../ml/README.md);
+run `python -m pytest` there as you read.
+
+| Step | File | What to look for |
+|---|---|---|
+| 10 | `ml/flagman_ml/flows/read.py`, `schema.py` | reading feature files: the feature list comes from the footer, categories keep fixed codes |
+| 11 | `ml/fixtures/README.md`, `lab-ground-truth.csv` | the lab's ground truth: one row per step of the recordings |
+| 12 | `ml/flagman_ml/labels/match.py`, then `match_test.py` | the matching rule (ends, ports, protocol, time), shown on tiny examples |
+| 13 | `ml/data/labels/lab.toml`, then `ml/flagman_ml/labels/mapping.py` | a mapping file: dataset labels to Flagman classes, time zone, offset, tolerance |
+| 14 | `ml/flagman_ml/labels/label.py`, `store.py`, `offset.py` | the labels file and its provenance; finding a time offset |
+| 15 | `ml/data/README.md` | each dataset: what is verified, its terms, how to cite it |
+| 16 | `ml/flagman_ml/datasets/download.py` | downloads that resume, check SHA-256, and refuse 20 GB without a yes |

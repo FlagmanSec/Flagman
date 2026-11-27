@@ -1,0 +1,20 @@
+# UNSW-NB15: the raw captures and their ground truth.
+# Facts, licence and citation: product/ml/data/README.md.
+#
+# The files are in a UNSW SharePoint folder, linked from the dataset page:
+# download them by hand, then check them with
+#   python -m flagman_ml.datasets verify --manifest data/manifests/unsw-nb15.toml --dest DIR
+# The page gives "100 GB of the raw traffic" and no list of capture file
+# names, so the captures are not listed here yet: 100 GB is over the 20 GB
+# that needs the team's yes. Add each capture (name, size) once downloaded,
+# with the checksum that `verify` prints.
+dataset = "unsw-nb15"
+page = "https://research.unsw.edu.au/projects/unsw-nb15-dataset"
+
+# The official page calls it UNSW-NB15_GT.csv; the COMIDDS description shows
+# NUSW-NB15_GT.csv. Rename this entry to the real name if they differ.
+[[files]]
+name = "UNSW-NB15_GT.csv"
+url = ""
+listed_size = ""
+kind = "ground_truth"

@@ -1,0 +1,34 @@
+# CTU-13: labelled bidirectional flows (Argus) of 13 botnet captures.
+# Facts and links: product/ml/data/README.md.
+#
+# Only the botnet-only captures are public (the full captures are private),
+# so extracted flows are mostly the infected machines' own traffic.
+dataset = "ctu-13"
+source = "https://www.stratosphereips.org/datasets-ctu13"
+format = "ctu_binetflow"
+ground_truth = [
+    "capture20110810.binetflow", "capture20110811.binetflow", "capture20110812.binetflow",
+    "capture20110815.binetflow", "capture20110815-2.binetflow", "capture20110816.binetflow",
+    "capture20110816-2.binetflow", "capture20110816-3.binetflow", "capture20110817.binetflow",
+    "capture20110818.binetflow", "capture20110818-2.binetflow", "capture20110819.binetflow",
+    "capture20110815-3.binetflow",
+]
+# The files list every flow: a flow they lack is not described.
+default_label = "unlabelled"
+# The time zone of StartTime is not stated. The scenario timelines are
+# written in CEST (UTC+2), so an offset of -2 h would be no surprise: run
+# `python -m flagman_ml.labels offsets` on the first scenario and write the
+# result here, with how it was found.
+time_zone = "UTC"
+time_offset_ms = 0
+time_tolerance_ms = 1000
+notes = """From-Botnet flows are the botnet's. To-Botnet and To-Normal flows go to a known \
+machine from an unknown source and are not malicious as such (per the dataset authors), so \
+they are background, like Background flows: never used to train or score."""
+
+[patterns]
+"From-Botnet" = "botnet"
+"From-Normal" = "normal"
+"To-Botnet" = "background"
+"To-Normal" = "background"
+"Background" = "background"

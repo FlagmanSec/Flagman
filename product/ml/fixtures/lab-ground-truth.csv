@@ -1,0 +1,8 @@
+start_utc,end_utc,protocol,src_ip,src_port,dst_ip,dst_port,label,note
+2026-11-26T18:09:35.140Z,2026-11-26T18:09:35.145Z,tcp,192.168.77.66,,192.168.77.10,,port_scan,lab-attack-chain step 2: nmap SYN scan of the 1000 most common ports
+2026-11-26T18:09:37.217Z,2026-11-26T18:09:41.431Z,tcp,192.168.77.66,,192.168.77.10,22,ssh_password_guessing,lab-attack-chain step 3: 15 quick connections to SSH like a password-guessing tool
+2026-11-26T22:16:03.922Z,2026-11-26T22:16:34.936Z,tcp,192.168.77.66,,192.168.77.10,22,ssh_password_guessing,lab-ssh-logins step 1: 10 connections with one wrong password each
+2026-11-26T22:16:34.943Z,2026-11-26T22:17:28.247Z,tcp,192.168.77.66,,192.168.77.10,22,ssh_password_guessing,lab-ssh-logins step 2: 3 connections with wrong passwords until the server hangs up
+2026-11-26T22:17:28.256Z,2026-11-26T22:18:08.525Z,tcp,192.168.77.66,,192.168.77.10,22,ssh_key_login,lab-ssh-logins step 3: a key login kept open 40 s
+2026-11-26T22:18:08.533Z,2026-11-26T22:18:09.761Z,tcp,192.168.77.66,,192.168.77.10,22,ssh_key_login,lab-ssh-logins step 4: 5 key logins running one command
+2026-11-26T22:18:10.779Z,2026-11-26T22:18:10.806Z,tcp,192.168.77.66,,192.168.77.10,22,ssh_refused,lab-ssh-logins step 5: 5 connections refused because the server was stopped

@@ -1,0 +1,184 @@
+# CTU-13: the botnet-only capture and the labelled flows of each of the 13
+# scenarios. Facts, licence and citation: product/ml/data/README.md.
+#
+# File names and sizes were read from the folder listings on 2026-11-27
+# (sizes are rounded, as the listings show them). No checksums are
+# published for these files: the first download records them (--record).
+#
+# Never downloaded: the malware samples (*.exe.zip) that each scenario folder
+# also holds, only-exes-of-ctu-13.zip, and CTU-13-Dataset.tar.bz2 (the
+# dataset page says each scenario holds "the original executable file").
+#
+# Sizes, adding up the listings: about 85 GB in all, of which scenario 51's
+# capture is 66G; about 14 GB without it. Leave it out with
+#   --skip ctu-51/botnet-capture-20110818-bot.pcap
+# unless the team agreed to download it (the script refuses 20 GB or more
+# without --allow-large).
+dataset = "ctu-13"
+page = "https://www.stratosphereips.org/datasets-ctu13"
+
+# Scenario 1 (Neris), folder CTU-Malware-Capture-Botnet-42
+[[files]]
+name = "ctu-42/botnet-capture-20110810-neris.pcap"
+url = "https://mcfp.felk.cvut.cz/publicDatasets/CTU-Malware-Capture-Botnet-42/botnet-capture-20110810-neris.pcap"
+listed_size = "56M"
+kind = "pcap"
+[[files]]
+name = "ctu-42/capture20110810.binetflow"
+url = "https://mcfp.felk.cvut.cz/publicDatasets/CTU-Malware-Capture-Botnet-42/detailed-bidirectional-flow-labels/capture20110810.binetflow"
+listed_size = "369M"
+kind = "labels"
+
+# Scenario 2 (Neris), folder CTU-Malware-Capture-Botnet-43
+[[files]]
+name = "ctu-43/botnet-capture-20110811-neris.pcap"
+url = "https://mcfp.felk.cvut.cz/publicDatasets/CTU-Malware-Capture-Botnet-43/botnet-capture-20110811-neris.pcap"
+listed_size = "35M"
+kind = "pcap"
+[[files]]
+name = "ctu-43/capture20110811.binetflow"
+url = "https://mcfp.felk.cvut.cz/publicDatasets/CTU-Malware-Capture-Botnet-43/detailed-bidirectional-flow-labels/capture20110811.binetflow"
+listed_size = "236M"
+kind = "labels"
+
+# Scenario 3 (Rbot), folder CTU-Malware-Capture-Botnet-44
+[[files]]
+name = "ctu-44/botnet-capture-20110812-rbot.pcap"
+url = "https://mcfp.felk.cvut.cz/publicDatasets/CTU-Malware-Capture-Botnet-44/botnet-capture-20110812-rbot.pcap"
+listed_size = "123M"
+kind = "pcap"
+[[files]]
+name = "ctu-44/capture20110812.binetflow"
+url = "https://mcfp.felk.cvut.cz/publicDatasets/CTU-Malware-Capture-Botnet-44/detailed-bidirectional-flow-labels/capture20110812.binetflow"
+listed_size = "610M"
+kind = "labels"
+
+# Scenario 4 (Rbot), folder CTU-Malware-Capture-Botnet-45
+[[files]]
+name = "ctu-45/botnet-capture-20110815-rbot-dos.pcap"
+url = "https://mcfp.felk.cvut.cz/publicDatasets/CTU-Malware-Capture-Botnet-45/botnet-capture-20110815-rbot-dos.pcap"
+listed_size = "212M"
+kind = "pcap"
+[[files]]
+name = "ctu-45/botnet-capture-20110815-rbot-dos-icmp.pcap"
+url = "https://mcfp.felk.cvut.cz/publicDatasets/CTU-Malware-Capture-Botnet-45/botnet-capture-20110815-rbot-dos-icmp.pcap"
+listed_size = "29M"
+kind = "pcap"
+[[files]]
+name = "ctu-45/botnet-capture-20110815-rbot-dos-icmp-more-bandwith.pcap"
+url = "https://mcfp.felk.cvut.cz/publicDatasets/CTU-Malware-Capture-Botnet-45/botnet-capture-20110815-rbot-dos-icmp-more-bandwith.pcap"
+listed_size = "4.8G"
+kind = "pcap"
+[[files]]
+name = "ctu-45/capture20110815.binetflow"
+url = "https://mcfp.felk.cvut.cz/publicDatasets/CTU-Malware-Capture-Botnet-45/detailed-bidirectional-flow-labels/capture20110815.binetflow"
+listed_size = "147M"
+kind = "labels"
+
+# Scenario 5 (Virut), folder CTU-Malware-Capture-Botnet-46
+[[files]]
+name = "ctu-46/botnet-capture-20110815-fast-flux.pcap"
+url = "https://mcfp.felk.cvut.cz/publicDatasets/CTU-Malware-Capture-Botnet-46/botnet-capture-20110815-fast-flux.pcap"
+listed_size = "30M"
+kind = "pcap"
+[[files]]
+name = "ctu-46/capture20110815-2.binetflow"
+url = "https://mcfp.felk.cvut.cz/publicDatasets/CTU-Malware-Capture-Botnet-46/detailed-bidirectional-flow-labels/capture20110815-2.binetflow"
+listed_size = "17M"
+kind = "labels"
+
+# Scenario 6 (DonBot), folder CTU-Malware-Capture-Botnet-47
+[[files]]
+name = "ctu-47/botnet-capture-20110816-donbot.pcap"
+url = "https://mcfp.felk.cvut.cz/publicDatasets/CTU-Malware-Capture-Botnet-47/botnet-capture-20110816-donbot.pcap"
+listed_size = "5.0M"
+kind = "pcap"
+[[files]]
+name = "ctu-47/capture20110816.binetflow"
+url = "https://mcfp.felk.cvut.cz/publicDatasets/CTU-Malware-Capture-Botnet-47/detailed-bidirectional-flow-labels/capture20110816.binetflow"
+listed_size = "73M"
+kind = "labels"
+
+# Scenario 7 (Sogou), folder CTU-Malware-Capture-Botnet-48
+[[files]]
+name = "ctu-48/botnet-capture-20110816-sogou.pcap"
+url = "https://mcfp.felk.cvut.cz/publicDatasets/CTU-Malware-Capture-Botnet-48/botnet-capture-20110816-sogou.pcap"
+listed_size = "18M"
+kind = "pcap"
+[[files]]
+name = "ctu-48/capture20110816-2.binetflow"
+url = "https://mcfp.felk.cvut.cz/publicDatasets/CTU-Malware-Capture-Botnet-48/detailed-bidirectional-flow-labels/capture20110816-2.binetflow"
+listed_size = "15M"
+kind = "labels"
+
+# Scenario 8 (Murlo), folder CTU-Malware-Capture-Botnet-49
+[[files]]
+name = "ctu-49/botnet-capture-20110816-qvod.pcap"
+url = "https://mcfp.felk.cvut.cz/publicDatasets/CTU-Malware-Capture-Botnet-49/botnet-capture-20110816-qvod.pcap"
+listed_size = "20M"
+kind = "pcap"
+[[files]]
+name = "ctu-49/capture20110816-3.binetflow"
+url = "https://mcfp.felk.cvut.cz/publicDatasets/CTU-Malware-Capture-Botnet-49/detailed-bidirectional-flow-labels/capture20110816-3.binetflow"
+listed_size = "385M"
+kind = "labels"
+
+# Scenario 9 (Neris), folder CTU-Malware-Capture-Botnet-50
+[[files]]
+name = "ctu-50/botnet-capture-20110817-bot.pcap"
+url = "https://mcfp.felk.cvut.cz/publicDatasets/CTU-Malware-Capture-Botnet-50/botnet-capture-20110817-bot.pcap"
+listed_size = "1.0G"
+kind = "pcap"
+[[files]]
+name = "ctu-50/capture20110817.binetflow"
+url = "https://mcfp.felk.cvut.cz/publicDatasets/CTU-Malware-Capture-Botnet-50/detailed-bidirectional-flow-labels/capture20110817.binetflow"
+listed_size = "273M"
+kind = "labels"
+
+# Scenario 10 (Rbot), folder CTU-Malware-Capture-Botnet-51
+[[files]]
+name = "ctu-51/botnet-capture-20110818-bot.pcap"
+url = "https://mcfp.felk.cvut.cz/publicDatasets/CTU-Malware-Capture-Botnet-51/botnet-capture-20110818-bot.pcap"
+listed_size = "66G"
+kind = "pcap"
+[[files]]
+name = "ctu-51/capture20110818.binetflow"
+url = "https://mcfp.felk.cvut.cz/publicDatasets/CTU-Malware-Capture-Botnet-51/detailed-bidirectional-flow-labels/capture20110818.binetflow"
+listed_size = "171M"
+kind = "labels"
+
+# Scenario 11 (Rbot), folder CTU-Malware-Capture-Botnet-52
+[[files]]
+name = "ctu-52/botnet-capture-20110818-bot-2.pcap"
+url = "https://mcfp.felk.cvut.cz/publicDatasets/CTU-Malware-Capture-Botnet-52/botnet-capture-20110818-bot-2.pcap"
+listed_size = "4.0G"
+kind = "pcap"
+[[files]]
+name = "ctu-52/capture20110818-2.binetflow"
+url = "https://mcfp.felk.cvut.cz/publicDatasets/CTU-Malware-Capture-Botnet-52/detailed-bidirectional-flow-labels/capture20110818-2.binetflow"
+listed_size = "14M"
+kind = "labels"
+
+# Scenario 12 (NSIS.ay), folder CTU-Malware-Capture-Botnet-53
+[[files]]
+name = "ctu-53/botnet-capture-20110819-bot.pcap"
+url = "https://mcfp.felk.cvut.cz/publicDatasets/CTU-Malware-Capture-Botnet-53/botnet-capture-20110819-bot.pcap"
+listed_size = "281M"
+kind = "pcap"
+[[files]]
+name = "ctu-53/capture20110819.binetflow"
+url = "https://mcfp.felk.cvut.cz/publicDatasets/CTU-Malware-Capture-Botnet-53/detailed-bidirectional-flow-labels/capture20110819.binetflow"
+listed_size = "43M"
+kind = "labels"
+
+# Scenario 13 (Virut), folder CTU-Malware-Capture-Botnet-54
+[[files]]
+name = "ctu-54/botnet-capture-20110815-fast-flux-2.pcap"
+url = "https://mcfp.felk.cvut.cz/publicDatasets/CTU-Malware-Capture-Botnet-54/botnet-capture-20110815-fast-flux-2.pcap"
+listed_size = "109M"
+kind = "pcap"
+[[files]]
+name = "ctu-54/capture20110815-3.binetflow"
+url = "https://mcfp.felk.cvut.cz/publicDatasets/CTU-Malware-Capture-Botnet-54/detailed-bidirectional-flow-labels/capture20110815-3.binetflow"
+listed_size = "251M"
+kind = "labels"

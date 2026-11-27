@@ -1,0 +1,13 @@
+# MAWI: anonymised traffic of a real backbone link (WIDE project), used
+# only to count false alarms and watch for drift on real traffic. It has
+# no ground truth: never use it as labelled normal traffic.
+# Facts, terms and citation: product/ml/data/README.md.
+#
+# No trace is listed yet: the archive's index pages could not be read by
+# our tools (2026-11-27), so no file name, address or size is verified.
+# Pick one trace by hand on the archive (samplepoint-F), check its size
+# (keep it small, under 5 GB), add it below with its url, then download it
+# with --record and paste the printed size and checksum here.
+dataset = "mawi"
+page = "https://mawi.wide.ad.jp/mawi/"
+files = []

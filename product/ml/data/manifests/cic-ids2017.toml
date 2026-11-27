@@ -1,0 +1,20 @@
+# CIC-IDS2017 and the corrected labels of Engelen et al. (2021).
+# Facts, licence and citation: product/ml/data/README.md.
+#
+# No file is listed yet, because no file name could be verified:
+# - the download folder (http://cicresearch.ca/CICDataset/CIC-IDS-2017/)
+#   shows a registration form (name, email, organisation, job title,
+#   country), and no file list, so the files are downloaded by hand;
+# - the page with the corrected labels
+#   (https://downloads.distrinet-research.be/WTMC2021) could not be read
+#   from here on 2026-11-27.
+# The dataset page gives the captures' sizes per day: Monday 11.0G,
+# Tuesday 11G, Wednesday 13G, Thursday 7.8G, Friday 8.3G (51 GB in all,
+# over the 20 GB that needs the team's yes).
+#
+# After downloading by hand, add one [[files]] entry per file (name,
+# listed_size, kind, url = ""), run `verify`, and paste the printed size
+# and checksum into the entry.
+dataset = "cic-ids2017"
+page = "https://www.unb.ca/cic/datasets/ids-2017.html"
+files = []

@@ -75,6 +75,7 @@ browser on the same machine. Ctrl-C stops it.
 | [`core/`](core/README.md) | The sensor, in Rust: capture, detection, storage, API, and the `flagmand` program |
 | [`ui/`](ui/README.md) | The dashboard, in Svelte |
 | [`deploy/`](deploy/README.md) | Installer, systemd service and default configuration |
+| [`ml/`](ml/README.md) | Phase 3 (draft branches): the Python pipeline that labels flows from public datasets, then trains and tests models, on the feature files `flagmand extract` writes |
 | [`docs/`](docs/README.md) | How it works, why it is built this way, and how to test it |
 
 New to the code? Start with [`docs/reading-order.md`](docs/reading-order.md).

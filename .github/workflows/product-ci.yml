@@ -55,6 +55,18 @@ jobs:
             echo "parquet is in the default flagmand build: keep it behind the parquet feature"
             exit 1
           fi
+      # The Python tests (product/ml) read feature files made from the lab
+      # captures: they must be exactly what the current code extracts.
+      - name: The ML test files match a fresh extraction of the lab captures
+        run: |
+          for name in lab-attack-chain lab-normal-traffic lab-ssh-logins; do
+            cargo run -q --locked -p flagmand --features parquet -- \
+              extract "testdata/pcap/$name.pcap" --out "$RUNNER_TEMP/$name.parquet"
+            if ! cmp -s "$RUNNER_TEMP/$name.parquet" "../ml/fixtures/$name.parquet"; then
+              echo "product/ml/fixtures/$name.parquet is stale: run product/ml/fixtures/make-fixtures.sh and commit the files"
+              exit 1
+            fi
+          done
 
   ui:
     name: Dashboard (Svelte)
@@ -77,3 +89,21 @@ jobs:
         run: npm test
       - name: Build
         run: npm run build
+
+  ml:
+    name: ML pipeline (Python)
+    runs-on: ubuntu-24.04
+    defaults:
+      run:
+        working-directory: product/ml
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+          cache: pip
+          cache-dependency-path: product/ml/requirements.txt
+      - name: Install exact dependency versions
+        run: python -m pip install -r requirements.txt
+      - name: Tests (small lab files, no download)
+        run: python -m pytest
