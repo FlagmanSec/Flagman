@@ -94,6 +94,21 @@ Sorted by theme, then alphabetically.
 | **Manifest** | A TOML file per dataset (`ml/data/manifests/`) listing the files to download, with their size and SHA-256 once recorded. |
 | **SHA-256 checksum** | A 64-character fingerprint of a file's exact bytes. Downloads are checked against it, and labels record the checksum of the feature files they describe. |
 | **Parity test** | A check that features computed live and features extracted from a recording of the same traffic are equal. Described in the phase 2 plan (2.9), not built yet. |
+| **Training, calibration, validation, test sets** | Flows split by whole files (days or sessions). The models learn from the training set; the calibration set sets the thresholds and the temperature; validation files guide choices such as which features to keep; the test set is used once, at the end, for the reported numbers. |
+| **False-alarm budget (α)** | The share of normal flows allowed to raise an alert, chosen by the user, such as 0.01 (1 in 100). |
+| **Conformal threshold** | The threshold set from n normal calibration flows: the ⌈(n+1)(1−α)⌉-th smallest of their scores. If new normal traffic is exchangeable with them, at most a share α of normal flows score above it, on average. Never a guarantee for a real network. |
+| **Exchangeable** | Roughly: new traffic comes from the same mix as the calibration traffic, as when the network has not changed. The false-alarm budget only holds then. |
+| **Calibrated probability** | A probability that means what it says: among flows given 0.9, about nine in ten are of that class. |
+| **Temperature scaling** | Calibration with one number, the temperature: the classifier's raw scores are divided by it before they become probabilities. It never changes the top class. |
+| **LightGBM** | A free library of gradient-boosted decision trees: many small trees, each correcting the previous ones. Flagman's classifier. |
+| **Isolation Forest** | An anomaly detector that cuts the data at random; an unusual flow ends up alone after few cuts. Trained on normal flows only. |
+| **Open set, unknown suspicious** | Traffic of a kind the models were never trained on. An alert whose class is not sure is called `unknown_suspicious` instead of being given a wrong name. |
+| **Drift** | Traffic that no longer looks like the calibration traffic (new devices, new software). The drift monitor checks the alert rate, the anomaly scores and each feature (PSI). |
+| **PSI (population stability index)** | A number saying how much the mix of a feature's values moved between two sets of flows: 0 for the same mix, larger when it moved. The drift monitor flags a feature above 0.2, a starting point to tune on your own traffic. |
+| **AUC, separability** | The AUC is the chance that a random flow of a class scores higher than a random other flow (0.5: no information, 1.0: perfect). Separability is the larger of AUC and 1 − AUC. |
+| **Ablation** | Training again without some features, to see how much the model leaned on them. |
+| **Macro-F1** | The F1 score (a balance of precision and recall) of each class, averaged, so rare classes count as much as common ones. |
+| **Model bundle** | The folder `train` writes: the models (`model.joblib`) and `bundle.json`, which says what they were trained on, their thresholds, and the model file's checksum. |
 
 ## Product names
 

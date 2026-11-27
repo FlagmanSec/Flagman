@@ -45,8 +45,20 @@ starts. Details: [docs/changes/phase-3-toolkit.md](docs/changes/phase-3-toolkit.
   program; manifests for CTU-13 (all 13 scenarios), UNSW-NB15, CIC-IDS2017
   and MAWI; `ml/data/README.md` with each dataset's verified facts, terms
   and citations, and what could not be verified.
-- CI: a Python job (79 tests on the lab files, no download), and a check
-  that the Python test files match a fresh extraction of the lab captures.
+- CI: a Python job (tests on the lab files and made-up flows, no
+  download), and a check that the Python test files match a fresh
+  extraction of the lab captures.
+- `python -m flagman_ml.models train | predict | drift`: LightGBM with
+  probabilities calibrated by temperature scaling, an Isolation Forest
+  trained on normal flows only, a false-alarm budget α set by split
+  conformal thresholds on calibration files kept aside (α/2 for each
+  score), the open-set decision (`unknown_suspicious`), a drift monitor
+  (alert rate, anomaly scores, PSI per feature), and model bundles with a
+  checksum and the library versions
+  ([ADR 0014](docs/adr/0014-two-scores-a-conformal-false-alarm-budget-and-temperature-scaling.md)).
+- `python -m flagman_ml.audit`: the shortcut audit (single-feature
+  separability of every feature for every class, with the watched features
+  marked, and ablations measured by macro-F1 on validation files).
 
 ### Changed (phase 3 toolkit)
 
