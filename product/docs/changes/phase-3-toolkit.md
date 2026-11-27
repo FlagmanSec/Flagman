@@ -25,7 +25,9 @@ the team when phase 3 starts.
 | 2 | `phase-3/02-extract` | #4 (draft) | `flagmand extract` to Parquet, behind an off-by-default cargo feature; ties broken by flow key; byte-identical test; parity test written in the phase 2 plan | done |
 | 3 | `phase-3/03-ml-data` | #5 (draft) | `product/ml`: pinned Python, reading the Parquet, labelling with a mapping file per dataset, time offset finder, download script and manifests, dataset facts | done |
 | 4 | `phase-3/04-models` | #6 (draft) | shortcut audit, LightGBM with temperature scaling, Isolation Forest, open-set rule, conformal false-alarm budget, drift monitor, model bundles, ADR 0014 | done |
-| 5 | `phase-3/05-evaluation` | – | evaluation harness, Suricata comparison, reports from `results/*.json`, model export and runtime ADR draft, runbook | next |
+| 5 | `phase-3/05-evaluation` | #7 (draft) | evaluation harness (plans, folds and seeds, attacks left out, cross-dataset tests, metrics, mean ± std, paired tests) and reports written only from `results/*.json` | done |
+| 6 | `phase-3/06-suricata` | – | the Suricata comparison (`suricata -r`, EVE alerts matched to flows) | next |
+| 7 | `phase-3/07-export-runbook` | – | model export (LightGBM text, ONNX if it works) and the runtime ADR draft; the runbook | to do |
 
 ## What is done
 
@@ -131,6 +133,34 @@ the team when phase 3 starts.
   files (no scan in the calibration file); with splits by day, that is
   the usual case.
 
+### 5. Evaluation and reports (`phase-3/05-evaluation`)
+
+- `flagman_ml/evaluation`: a plan (TOML, `ml/plans/`) lists datasets
+  (labels file and feature files) and folds (training, calibration and
+  test files, always whole files). Each fold runs per seed; with
+  `leave_one_attack_out`, again without each attack class of its training
+  files (first seed); a fold may test on another dataset. Each run trains,
+  decides and writes `results/evaluation/<plan>/runs/<run>.json`: the
+  budget (false alarms on normal test flows against α, exact
+  Clopper-Pearson intervals, each score against α/2), three ways of
+  deciding (two scores, classifier alone at α, anomaly score alone at α,
+  with McNemar tests), detection at 0.1%, 0.5% and 1% false alarms (and
+  whether the test had enough normal flows to measure it), precision at
+  base rates of 0.1% and 1%, per-class F1 and macro-F1, detection and
+  naming per class, ECE before and after calibration (15 bins), alerts per
+  day per file. Runs already written are skipped. `summary.json`: mean ±
+  std over runs, Wilcoxon tests paired by run, the classes left out.
+- `flagman_ml/reports`: Markdown from `summary.json`, the run files (their
+  checksums checked) and an audit report; every number goes through one
+  formatting function, and a test checks that each number of a report is
+  a value of its source files.
+- `synthetic.write_day` and `write_labels`: made-up days written as real
+  feature files with labels files, so the harness is tested end to end
+  (the three lab files cannot make a fold).
+- `train` now sets aside calibration flows of a class absent from training
+  (with a warning) instead of failing: with splits by day, a calibration
+  day can hold an attack the training days do not.
+
 ## What is tested
 
 | Pull request | Tests |
@@ -139,21 +169,25 @@ the team when phase 3 starts.
 | 2 | 5 new in `flagman-core` (ties: same end order on every run, the same flow ended when a full table has equally old flows, both failing without the tie-break; end reason names; an engine with an extension gives the same flows and alerts as the sensor's; the live/replay difference after a silence), 6 in `flagman-parquet` (columns in schema order, footer, values and nulls read back, same rows same bytes, row groups, empty file), 1 command-line test, and with `--features parquet` 4 in `flagmand` (the extracted flows are exactly the sensor's flows on the three lab captures, one row per flow, no file left after a failure, no overwrite without `--overwrite`) and `tests/extract.rs` (the program run twice on each lab capture gives byte-identical files; without the tie-break the attack chain gave different files 3 times out of 3). 134 tests without the feature, 139 with it, plus 1 ignored. pyarrow 26.0.1 reads the files (checked by hand; the Python tests come with pull request 3) |
 | 3 | 79 Python tests, in under 3 s: reading (one row per flow, inputs are only the features, fixed categories, files stacked with their names; refusals: unknown schema version, missing footer, unknown kind, same file name, other flow table settings, a category outside the schema), matching on tiny examples (either direction, empty ports, exact conversations, protocol, tolerance, offset, most specific wins, longest overlap wins, no match), the four readers on hand-written samples, mapping files (all repository files load, patterns in order, every unknown label listed, five kinds of mistakes), labelling the lab (1,000 scan, 28 brute_force, 53 normal, no conflict; 2 conflicts with 1 s of tolerance, same labels), the offset finder (a 3-hour shift found, no other offset matches), labels files (join back, provenance, same bytes twice, refusal of a changed feature file), the commands, manifests (all load, unsafe entries refused, selection) and downloads from a local web server (checked download, resume, server without ranges, wrong checksum, no checksum without `--record`, file already there, the 20 GB guard, the disk check). Rust tests unchanged |
 | 4 | 66 new Python tests (145 in all, about 7 s): the conformal threshold (the k-th smallest score by hand, the paper's quantile, too few flows means no alert, the smallest calibration set, the false-alarm rate over 400 repetitions within the budget, a shifted network above it, α checked), the split by file, the forest's matrix, LightGBM with temperature scaling (probabilities sum to 1, the top class never changes, a too-sure model is softened, two classes, refusals, same data same model), the forest (attacks score higher), each branch of the decision, PSI, the alert-rate and score tests, the drift report, bundles (round trip, changed file refused, other library versions warn), training on made-up flows (report, the false-alarm rate on new normal flows under 7% for a 5% budget, known attacks named, an unseen attack still alerts, huge uploads called normal by the classifier come out `unknown_suspicious`, too few calibration flows, no normal calibration flow refused), predictions (columns, refusals of another flow table or schema), separability (the rank formula against scikit-learn with ties, a planted watched fingerprint flagged, categories), ablations (macro-F1 falls from 1.0 when the planted feature is removed), and the commands on the lab files (pipeline checks). Rust tests unchanged |
+| 5 | 31 new Python tests (176 in all, about 10 s): every metric on numbers checked by hand (intervals, detection at a false-alarm rate, too few normal flows, the two-score rule, Bayes' rule, ECE by hand and on bin edges, macro-F1 with `unknown_suspicious`, detection per class, alerts per day), mean ± std, Wilcoxon (smallest p-value with 5 pairs), exact McNemar, plans (the example plan loads; seven kinds of mistakes refused), a whole plan on made-up days (runs written once, leave-one-out runs, unseen classes, summary, runs not run twice), the report (every number from its source files; changed run files refused), calibration flows of an untrained class set aside. Rust tests unchanged |
 
 ## What is left, in order
 
-1. **Evaluation** (`phase-3/05-evaluation`): splits by day or session,
-   leave-one-attack-type-out, cross-dataset holdouts, detection at fixed
-   false-alarm rates (0.1%, 0.5%, 1%), precision at a realistic base rate,
-   ECE (Guo et al. use 15 equal-width bins), observed against configured
-   budget, per-class F1, macro-F1, alerts per day, mean ± std over seeds,
-   paired tests; the Suricata comparison (`suricata -r` with ET Open; a
-   hand-written EVE file, labelled so, if none can be recorded); reports
-   from `results/*.json`; model export (LightGBM text, ONNX if it works)
-   and the runtime ADR draft; the runbook. They build on
-   `flagman_ml.models` (`predict` writes every probability, for ECE) and
-   read the bundles' `bundle.json`.
-2. **Checks when the data is downloaded** (by the team; this session's
+1. **Suricata comparison** (`phase-3/06-suricata`): run `suricata -r` on
+   the test captures with ET Open, match its EVE alerts to Flagman's flows
+   (ends, ports, time), and add Suricata as a fourth way of deciding in
+   the evaluation (detection, false alarms, McNemar against Flagman). Say
+   where the EVE file comes from; if none can be recorded, hand-write one
+   from the official EVE format and label it "hand-written" in the test
+   and the README. Found in this session: Suricata 7.0.3 can be installed
+   from the Ubuntu archive here, but rules.emergingthreats.net is out of
+   network reach, so ET Open cannot be downloaded here.
+2. **Model export and runbook** (`phase-3/07-export-runbook`): LightGBM
+   text export, ONNX if it works (onnxmltools from PyPI, which this
+   session can reach), the runtime ADR draft (code generation, ONNX
+   Runtime, LightGBM C API) with small measurements, no Rust wiring; then
+   `ml/docs/runbook.md` for a VM with 2 to 4 virtual CPUs and 1 to 8 GB.
+3. **Checks when the data is downloaded** (by the team; this session's
    network could not reach the dataset servers): record every SHA-256 in
    the manifests; check the UNSW-NB15 ground truth's name, columns and time
    format; read the Engelen et al. download page and finish
@@ -213,6 +247,12 @@ the team when phase 3 starts.
 - The drift monitor's limits (p-value 0.01, PSI 0.2) are starting points,
   not standards. Its alert-rate test assumes the window is mostly normal
   traffic.
+- The evaluation was only run on made-up days. Detection at 0.1% false
+  alarms needs 1,000 normal test flows per score (2,000 for the two-score
+  rule); with 5 runs, the smallest Wilcoxon p-value is 0.0625.
+  Leave-one-attack-type-out runs use the first seed only.
+- No evaluation plan for a real dataset is committed: the capture file
+  names are to be checked on the downloaded files.
 
 ## Files to review first
 
@@ -255,6 +295,14 @@ Pull request 4:
 5. `ml/flagman_ml/audit/README.md`, `separability.py`, `ablation_test.py`
 6. `ml/flagman_ml/models/drift.py` (the limits to tune)
 
+Pull request 5:
+
+1. `ml/flagman_ml/evaluation/README.md`, then `metrics_test.py` and
+   `metrics.py`
+2. `ml/plans/README.md` and `example.toml`
+3. `ml/flagman_ml/evaluation/evaluate.py` and `run.py`
+4. `ml/flagman_ml/reports/report_test.py` and `evaluation.py`
+
 ## Prompt for the next session
 
 ```text
@@ -270,6 +318,7 @@ downloads under ~5 GB. Python lives in product/ml (python -m pytest
 there, Python 3.13, requirements.txt pinned). Every push includes a
 context .docx and its .md copy in product/docs/context/. Never merge; open draft pull requests, each
 branch based on the previous one (phase-3/NN-name). Continue with the
-first item of "What is left" (evaluation, on branch phase-3/05-evaluation
-from phase-3/04-models), and update this file with every pull request.
+first item of "What is left" (the Suricata comparison, on branch
+phase-3/06-suricata from phase-3/05-evaluation), and update this file with
+every pull request.
 ```

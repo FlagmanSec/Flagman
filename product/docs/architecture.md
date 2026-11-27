@@ -191,8 +191,20 @@ new flows ──> openset.py: suspicion or anomaly above its threshold = alert
 ```
 
 `flagman_ml/audit` looks for testbed fingerprints before training
-(single-feature separability and ablations). The evaluation and the
-reports build on this in the next pull request
+(single-feature separability and ablations).
+
+`flagman_ml/evaluation` runs a plan: for each fold (training, calibration
+and test files) and seed, it trains, decides on the test files and writes
+one JSON file of metrics; `summary.json` gathers them. `flagman_ml/reports`
+writes Markdown from those files only:
+
+```text
+plans/*.toml ──> evaluation/run.py ──> results/evaluation/<plan>/runs/*.json
+                                          └─> summary.py ──> summary.json
+                                                └─> reports/ ──> report.md
+```
+
+The Suricata comparison, the model export and the runbook come next
 ([handoff](changes/phase-3-toolkit.md)).
 
 ## Threads and shutdown

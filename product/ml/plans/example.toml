@@ -1,0 +1,41 @@
+# An example plan. The file names are placeholders: replace them with your
+# own feature files (written by `flagmand extract`) and labels files
+# (written by `python -m flagman_ml.labels label`).
+name = "example"
+
+# False-alarm budget for normal flows (both scores together).
+alpha = 0.01
+# An alert's class is named only when its probability is at least this.
+min_confidence = 0.5
+# Each fold runs once per seed (the Isolation Forest and LightGBM seeds).
+seeds = [0, 1, 2, 3, 4]
+# Run each fold again without each attack class of its training files.
+leave_one_attack_out = true
+
+[model]
+trees = 200
+min_flows_per_leaf = 20
+threads = 2
+
+[datasets.first]
+labels = "results/labels/first-dataset.parquet"
+flows = ["flows/first/day1.parquet", "flows/first/day2.parquet",
+         "flows/first/day3.parquet", "flows/first/day4.parquet"]
+
+[datasets.second]
+labels = "results/labels/second-dataset.parquet"
+flows = ["flows/second/capture-a.parquet"]
+
+# Train on days 1 and 2, calibrate on day 3, test on day 4.
+[[folds]]
+name = "test-day4"
+train = ["day1.parquet", "day2.parquet"]
+calibration = ["day3.parquet"]
+test = ["day4.parquet"]
+
+# The same models, tested on another dataset (a cross-dataset holdout).
+[[folds]]
+name = "test-second-dataset"
+train = ["day1.parquet", "day2.parquet"]
+calibration = ["day3.parquet"]
+test = ["capture-a.parquet"]

@@ -18,7 +18,7 @@ Python 3.13, from this folder:
 python3.13 -m venv .venv
 . .venv/bin/activate
 python -m pip install -r requirements.txt   # exact versions, see the file
-python -m pytest                             # about 140 tests, under 10 seconds
+python -m pytest                             # about 180 tests, about 10 seconds
 ```
 
 Run every command from this folder (`product/ml`): the code is not
@@ -31,6 +31,7 @@ installed as a package.
 | `flagman_ml/` | the code, with its tests next to it ([README](flagman_ml/README.md)) |
 | `data/` | the datasets: licences, sizes, citations, mapping files and download manifests ([README](data/README.md)) |
 | `fixtures/` | small real files for the tests, made from the lab captures ([README](fixtures/README.md)) |
+| `plans/` | evaluation plans: which files train, calibrate and test ([README](plans/README.md)) |
 | `requirements.txt` | every Python package, pinned to one version |
 | `pyproject.toml` | settings of the test runner |
 | `results/` | outputs (labels, models, reports); never committed, rebuilt by the commands |
@@ -80,6 +81,21 @@ python -m flagman_ml.models drift --model results/models/lab \
 On the lab files these are pipeline checks, not results: 1,081 flows from
 three short recordings say nothing about how well Flagman detects.
 
+## From decisions to numbers
+
+```bash
+# 6. Evaluate: train and test per fold and seed, as a plan says (plans/)
+python -m flagman_ml.evaluation --plan plans/my-plan.toml
+
+# 7. The report, written only from the results JSON files
+python -m flagman_ml.reports --evaluation results/evaluation/my-plan \
+    --audit results/audit/my-data.json --out results/reports/my-plan.md
+```
+
+The three lab files cannot make a fold (training, calibration and test
+files, each with normal traffic), so the evaluation's tests run a plan on
+made-up days written as feature files: again a pipeline check.
+
 ## Reading order
 
 1. [`flagman_ml/flows/`](flagman_ml/flows/README.md): reading feature files.
@@ -92,6 +108,10 @@ three short recordings say nothing about how well Flagman detects.
 5. [`flagman_ml/audit/`](flagman_ml/audit/README.md): the shortcut audit.
 6. [`flagman_ml/models/`](flagman_ml/models/README.md): the models, the
    false-alarm budget and the drift monitor.
+7. [`flagman_ml/evaluation/`](flagman_ml/evaluation/README.md) and
+   [`plans/`](plans/README.md): measuring on whole files never seen.
+8. [`flagman_ml/reports/`](flagman_ml/reports/README.md): reports from
+   results files only.
 
-The evaluation and the reports come in the next step of phase 3: see
+The Suricata comparison, the model export and the runbook come next: see
 [the handoff](../docs/changes/phase-3-toolkit.md).

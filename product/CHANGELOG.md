@@ -59,6 +59,16 @@ starts. Details: [docs/changes/phase-3-toolkit.md](docs/changes/phase-3-toolkit.
 - `python -m flagman_ml.audit`: the shortcut audit (single-feature
   separability of every feature for every class, with the watched features
   marked, and ablations measured by macro-F1 on validation files).
+- `python -m flagman_ml.evaluation --plan plans/<name>.toml`: runs a plan of
+  folds (whole training, calibration and test files) and seeds, with every
+  attack class left out in turn and tests on other datasets; measures the
+  observed against the configured false-alarm budget (exact intervals),
+  detection at 0.1%, 0.5% and 1% false alarms, precision at a base rate,
+  ECE, per-class F1 and macro-F1, and alerts per day; summarises mean ± std
+  and paired tests (Wilcoxon, McNemar).
+- `python -m flagman_ml.reports`: Markdown reports written only from the
+  results JSON files, naming them with their checksums; a test checks that
+  every number of a report is a value of those files.
 
 ### Changed (phase 3 toolkit)
 
