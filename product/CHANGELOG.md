@@ -126,3 +126,11 @@ Phase 1: Linux Pro. Details and checks: [docs/changes/phase-1-linux-pro.md](docs
   new connections per second; with the default 100,000 flows the same
   mechanism gives about 31,000. Phase 2 measures it on the router
   ([phase 2 plan](docs/phase-2-plan.md), 2.6). No detector change.
+
+### Fixed
+
+- The install guides no longer tell Ubuntu users to install `nodejs` with
+  apt: Ubuntu 24.04 ships Node.js 18, too old for the dashboard (it needs
+  20.19 or newer). They now use the NodeSource repository. The repository's
+  main README now describes Flagman and how to install it; the CS395
+  research README moved to `RESEARCH.md`.
