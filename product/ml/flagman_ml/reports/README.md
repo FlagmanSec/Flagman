@@ -8,7 +8,7 @@ SHA-256 checksums, and refuses run files changed since the summary.
 | File | What it does |
 |---|---|
 | `numbers.py` | `fmt`, the one way numbers are printed (4 significant digits), and the helpers of the traceability test |
-| `evaluation.py` | the evaluation report: main results, observed against configured budget, paired tests, attacks left out, alerts per day, the shortcut audit |
+| `evaluation.py` | the evaluation report: main results, observed against configured budget, paired tests, detection by attack class (Flagman and Suricata), attacks left out, alerts per day, where Suricata's alerts come from, the shortcut audit |
 | `cli.py` | the command |
 
 ```bash

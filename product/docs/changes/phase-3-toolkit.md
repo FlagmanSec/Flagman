@@ -26,8 +26,8 @@ the team when phase 3 starts.
 | 3 | `phase-3/03-ml-data` | #5 (draft) | `product/ml`: pinned Python, reading the Parquet, labelling with a mapping file per dataset, time offset finder, download script and manifests, dataset facts | done |
 | 4 | `phase-3/04-models` | #6 (draft) | shortcut audit, LightGBM with temperature scaling, Isolation Forest, open-set rule, conformal false-alarm budget, drift monitor, model bundles, ADR 0014 | done |
 | 5 | `phase-3/05-evaluation` | #7 (draft) | evaluation harness (plans, folds and seeds, attacks left out, cross-dataset tests, metrics, mean ± std, paired tests) and reports written only from `results/*.json` | done |
-| 6 | `phase-3/06-suricata` | – | the Suricata comparison (`suricata -r`, EVE alerts matched to flows) | next |
-| 7 | `phase-3/07-export-runbook` | – | model export (LightGBM text, ONNX if it works) and the runtime ADR draft; the runbook | to do |
+| 6 | `phase-3/06-suricata` | #8 (draft) | the Suricata comparison (`suricata -r`, EVE alerts matched to flows, Suricata scored in the evaluation), EVE test files recorded on the lab captures | done |
+| 7 | `phase-3/07-export-runbook` | – | model export (LightGBM text, ONNX if it works) and the runtime ADR draft; the runbook | next |
 
 ## What is done
 
@@ -161,6 +161,38 @@ the team when phase 3 starts.
   (with a warning) instead of failing: with splits by day, a calibration
   day can hold an attack the training days do not.
 
+### 6. Suricata comparison (`phase-3/06-suricata`)
+
+- `flagman_ml/suricata`: `run` runs `suricata -c <config> -r <capture>
+  -S <rules> -l <out> -k none --runmode single` (optionally `--set
+  vars.address-groups.HOME_NET=...`) and writes `run.json` (Suricata's
+  version, the command, the checksums of the capture, rules and
+  configuration). `match` reads the alert lines of `eve.json` (or `.gz`),
+  gives each alert to the Flagman flow with the same protocol and ends
+  whose first and last packets hold the alert's packet time (cut to the
+  millisecond, as Flagman cuts its times; the labelling rule of
+  `labels/match.py`), counts unmatched alerts, and writes a Suricata file
+  (per flow: alerts and rule numbers; footer: feature file and EVE
+  checksums, `run.json`, counts). It refuses an EVE file from another
+  capture, and an EVE file without `run.json` unless `--origin` says
+  where it comes from.
+- The evaluation: a dataset may list Suricata files (`suricata = [...]`);
+  a fold whose test files all have one scores Suricata as a fourth way of
+  deciding (false alarms, detection, McNemar against the two scores,
+  precision at the base rates, each attack class, alerts per day). The
+  summary adds the Suricata metrics, Wilcoxon tests against it and the
+  mean alerted share per attack class for Flagman and Suricata; the
+  report adds those and where Suricata's alerts come from.
+- Test files **recorded**, not hand-written: Suricata 7.0.3 (Ubuntu
+  24.04.5 package) on the three lab captures with two local rules
+  (`ml/fixtures/suricata/local.rules`), because rules.emergingthreats.net
+  is refused by this session's network proxy (checked again on
+  2026-11-27). All 1,035 alerts land on a lab flow. A few hand-written
+  lines in `eve_test.py` cover what the recordings lack, marked as such.
+- Found while building it: two Suricata runs of the same capture gave the
+  same alerts in the same order but other `flow_id` values, so matching
+  does not use `flow_id`.
+
 ## What is tested
 
 | Pull request | Tests |
@@ -170,29 +202,24 @@ the team when phase 3 starts.
 | 3 | 79 Python tests, in under 3 s: reading (one row per flow, inputs are only the features, fixed categories, files stacked with their names; refusals: unknown schema version, missing footer, unknown kind, same file name, other flow table settings, a category outside the schema), matching on tiny examples (either direction, empty ports, exact conversations, protocol, tolerance, offset, most specific wins, longest overlap wins, no match), the four readers on hand-written samples, mapping files (all repository files load, patterns in order, every unknown label listed, five kinds of mistakes), labelling the lab (1,000 scan, 28 brute_force, 53 normal, no conflict; 2 conflicts with 1 s of tolerance, same labels), the offset finder (a 3-hour shift found, no other offset matches), labels files (join back, provenance, same bytes twice, refusal of a changed feature file), the commands, manifests (all load, unsafe entries refused, selection) and downloads from a local web server (checked download, resume, server without ranges, wrong checksum, no checksum without `--record`, file already there, the 20 GB guard, the disk check). Rust tests unchanged |
 | 4 | 66 new Python tests (145 in all, about 7 s): the conformal threshold (the k-th smallest score by hand, the paper's quantile, too few flows means no alert, the smallest calibration set, the false-alarm rate over 400 repetitions within the budget, a shifted network above it, α checked), the split by file, the forest's matrix, LightGBM with temperature scaling (probabilities sum to 1, the top class never changes, a too-sure model is softened, two classes, refusals, same data same model), the forest (attacks score higher), each branch of the decision, PSI, the alert-rate and score tests, the drift report, bundles (round trip, changed file refused, other library versions warn), training on made-up flows (report, the false-alarm rate on new normal flows under 7% for a 5% budget, known attacks named, an unseen attack still alerts, huge uploads called normal by the classifier come out `unknown_suspicious`, too few calibration flows, no normal calibration flow refused), predictions (columns, refusals of another flow table or schema), separability (the rank formula against scikit-learn with ties, a planted watched fingerprint flagged, categories), ablations (macro-F1 falls from 1.0 when the planted feature is removed), and the commands on the lab files (pipeline checks). Rust tests unchanged |
 | 5 | 31 new Python tests (176 in all, about 10 s): every metric on numbers checked by hand (intervals, detection at a false-alarm rate, too few normal flows, the two-score rule, Bayes' rule, ECE by hand and on bin edges, macro-F1 with `unknown_suspicious`, detection per class, alerts per day), mean ± std, Wilcoxon (smallest p-value with 5 pairs), exact McNemar, plans (the example plan loads; seven kinds of mistakes refused), a whole plan on made-up days (runs written once, leave-one-out runs, unseen classes, summary, runs not run twice), the report (every number from its source files; changed run files refused), calibration flows of an untrained class set aside. Rust tests unchanged |
+| 6 | 29 new Python tests (205 in all, about 10 s): the recorded files name the committed rules and captures (checksums), reading EVE lines (the recorded alerts, times with a zone offset, ICMP without ports, other protocols, gzip, four kinds of broken lines named by number), matching on hand-checked flows (answer side first, the later of two flows with the same ends, a time cut to the millisecond, ports, protocols, the tolerance and the nearer flow), counts per flow, the runner with a stand-in program (the documented command, `run.json`, failures), the commands on the recorded lab files (every alert matched, alerted flows per class, refusals), and Suricata scored in a whole plan on made-up days with made-up alerts. Suricata itself is not needed by the tests. |
 
 ## What is left, in order
 
-1. **Suricata comparison** (`phase-3/06-suricata`): run `suricata -r` on
-   the test captures with ET Open, match its EVE alerts to Flagman's flows
-   (ends, ports, time), and add Suricata as a fourth way of deciding in
-   the evaluation (detection, false alarms, McNemar against Flagman). Say
-   where the EVE file comes from; if none can be recorded, hand-write one
-   from the official EVE format and label it "hand-written" in the test
-   and the README. Found in this session: Suricata 7.0.3 can be installed
-   from the Ubuntu archive here, but rules.emergingthreats.net is out of
-   network reach, so ET Open cannot be downloaded here.
-2. **Model export and runbook** (`phase-3/07-export-runbook`): LightGBM
+1. **Model export and runbook** (`phase-3/07-export-runbook`): LightGBM
    text export, ONNX if it works (onnxmltools from PyPI, which this
    session can reach), the runtime ADR draft (code generation, ONNX
    Runtime, LightGBM C API) with small measurements, no Rust wiring; then
    `ml/docs/runbook.md` for a VM with 2 to 4 virtual CPUs and 1 to 8 GB.
-3. **Checks when the data is downloaded** (by the team; this session's
+2. **Checks when the data is downloaded** (by the team; this session's
    network could not reach the dataset servers): record every SHA-256 in
    the manifests; check the UNSW-NB15 ground truth's name, columns and time
    format; read the Engelen et al. download page and finish
    `cic-ids2017.toml`; find the CTU-13 time offset with `offsets`; pick one
-   small MAWI trace.
+   small MAWI trace. Then run Suricata with ET Open on the test captures
+   (`sudo suricata-update`, then `python -m flagman_ml.suricata run`, with
+   `--home-net` set to each dataset's internal networks) and list the
+   Suricata files in the plans.
 
 ## Known limits
 
@@ -253,6 +280,23 @@ the team when phase 3 starts.
   Leave-one-attack-type-out runs use the first seed only.
 - No evaluation plan for a real dataset is committed: the capture file
   names are to be checked on the downloaded files.
+- Suricata was only run on the three lab captures, with two local rules
+  written for the check; ET Open was never run here. The lab alerts check
+  the code and say nothing about Suricata's quality.
+- Suricata scores a flow yes or no (at least one alert): it has no score
+  to move, so it has no "detection at a false-alarm rate", and its alerts
+  are not named with Flagman's classes.
+- Rules that use thresholds (such as "the 21st request in 10 seconds")
+  alert on some flows of an attack and not others (20 of the 1,000 lab
+  scan flows raised none: the rule alerts only after its 20th match).
+  Scoring per flow counts each flow, so a rule
+  that alerts once per attack scores a low detection even when it found
+  the attack.
+- `--home-net` must name each dataset's internal networks, or rules that
+  look at traffic towards `$HOME_NET` stay silent.
+- Matching needs the same capture for both tools (checked by name through
+  `run.json`) and assumes Suricata's alert time is the time of a packet of
+  the flow, as it was for every lab alert.
 
 ## Files to review first
 
@@ -303,6 +347,16 @@ Pull request 5:
 3. `ml/flagman_ml/evaluation/evaluate.py` and `run.py`
 4. `ml/flagman_ml/reports/report_test.py` and `evaluation.py`
 
+Pull request 6:
+
+1. `ml/flagman_ml/suricata/README.md`
+2. `ml/flagman_ml/suricata/match.py` with `match_test.py`
+3. `ml/fixtures/suricata/local.rules` and the Suricata part of
+   `ml/fixtures/README.md`
+4. `ml/flagman_ml/suricata/cli_test.py` (the lab pipeline check)
+5. The Suricata parts of `evaluation/evaluate.py`, `run.py`, `summary.py`
+   and `reports/evaluation.py`
+
 ## Prompt for the next session
 
 ```text
@@ -318,7 +372,7 @@ downloads under ~5 GB. Python lives in product/ml (python -m pytest
 there, Python 3.13, requirements.txt pinned). Every push includes a
 context .docx and its .md copy in product/docs/context/. Never merge; open draft pull requests, each
 branch based on the previous one (phase-3/NN-name). Continue with the
-first item of "What is left" (the Suricata comparison, on branch
-phase-3/06-suricata from phase-3/05-evaluation), and update this file with
-every pull request.
+first item of "What is left" (the model export and the runbook, on branch
+phase-3/07-export-runbook from phase-3/06-suricata), and update this file
+with every pull request.
 ```

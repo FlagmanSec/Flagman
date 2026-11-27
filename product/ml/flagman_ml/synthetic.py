@@ -9,7 +9,10 @@ Nothing here describes real traffic, and no result is ever computed on it.
 ``write_day`` writes such flows as a real feature file (the lab files'
 footer, made-up metadata on a given day) and returns their labels;
 ``write_labels`` writes the matching labels file. Together they let the
-evaluation's tests split by day without any real dataset.
+evaluation's tests split by day without any real dataset. ``write_eve``
+writes made-up Suricata alerts for chosen flows of such a file, in the
+EVE format that Suricata 7.0.3 wrote for the lab captures
+(fixtures/suricata): no Suricata ran on made-up flows.
 
 Example::
 
@@ -19,6 +22,8 @@ Example::
 
 from __future__ import annotations
 
+import json
+from datetime import UTC, datetime
 from pathlib import Path
 
 import numpy as np
@@ -118,6 +123,22 @@ def write_day(path: Path, counts: dict[str, int], seed: int, day: int) -> pd.Ser
                                  preserve_index=False)
     pq.write_table(table.replace_schema_metadata(footer), path)
     return frame["label"]
+
+
+def write_eve(path: Path, flows: Path, alerted: np.ndarray, signature_id: int = 1000001) -> None:
+    """Made-up Suricata alerts, one per flow where ``alerted`` is true, each at
+    its flow's first packet; plus one line of another event type."""
+    frame = pq.read_table(flows).to_pandas()
+    lines = [json.dumps({"timestamp": "1970-01-01T00:00:00.000000+0000", "event_type": "stats"})]
+    for flow in frame[np.asarray(alerted, dtype=bool)].itertuples():
+        moment = datetime.fromtimestamp(flow.flow_start_ms / 1000, UTC)
+        lines.append(json.dumps({
+            "timestamp": moment.strftime("%Y-%m-%dT%H:%M:%S.%f+0000"), "event_type": "alert",
+            "src_ip": flow.src_ip, "src_port": int(flow.src_port), "dest_ip": flow.dst_ip,
+            "dest_port": int(flow.dst_port), "proto": str(flow.protocol).upper(),
+            "alert": {"action": "allowed", "gid": 1, "signature_id": signature_id, "rev": 1,
+                      "signature": "made-up alert", "category": "", "severity": 2}}))
+    path.write_text("\n".join(lines) + "\n", encoding="utf-8")
 
 
 def write_labels(path: Path, labelled: dict[Path, pd.Series]) -> None:

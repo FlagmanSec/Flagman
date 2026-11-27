@@ -56,6 +56,10 @@ def evaluation_report(folder: Path, audit: Path | None = None) -> tuple[str, lis
         table(["Comparison", "Pairs", "Median difference", "p-value"],
               [[label, t["pairs"], t["median_difference"], t["p_value"]]
                for label, t in summary["paired"].items()]),
+        "## Detection by attack class (mean share of flows that raised an alert)",
+        table(["Class", "Flagman", "Suricata", "Runs"],
+              [[name, v["flagman"]["mean"], v["suricata"]["mean"], v["flagman"]["runs"]]
+               for name, v in summary.get("by_class", {}).items()]),
         "## Attacks left out of training",
         left_out_table(summary["left_out"]),
         "## Alerts per day",
@@ -64,6 +68,7 @@ def evaluation_report(folder: Path, audit: Path | None = None) -> tuple[str, lis
                for name, run in main.items()
                for source, d in run["metrics"]["alerts_per_day"].items()]),
     ]
+    parts += suricata_section(main)
     if audit is not None:
         parts += audit_section(load(audit), audit)
         sources.append(audit)
@@ -83,6 +88,36 @@ def left_out_table(left_out: dict) -> str:
         table(["Class", "Decision", "Flows"],
               [[name, f"`{decision}`", count] for name, v in left_out.items()
                for decision, count in v["decisions"].items()])
+
+
+def suricata_section(main: dict) -> list[str]:
+    """Where Suricata's alerts come from, and how many matched no flow."""
+    rows = [(name, item["suricata"]) for name, run in main.items()
+            for item in run["files"]["test"] if item.get("suricata")]
+    if not rows:
+        return []
+    return [
+        "## Suricata: where its alerts come from",
+        "Each test file's alerts were matched to Flagman's flows by their ends, protocol and "
+        "time (flagman_ml/suricata). Unmatched alerts belong to no Flagman flow.",
+        table(["Run", "Test file", "Suricata", "Rules", "Alerts", "Unmatched", "Flows alerted"],
+              [[f"`{name}`", f"`{s['flow_file']}`", origin(s), rules(s), s["counts"]["alerts"],
+                s["counts"]["unmatched"], s["counts"]["flows_alerted"]]
+               for name, s in rows]),
+    ]
+
+
+def origin(suricata: dict) -> str:
+    if suricata.get("run"):
+        return f"`{suricata['run']['suricata']}`"
+    return f"no run record: `{suricata.get('origin')}`"
+
+
+def rules(suricata: dict) -> str:
+    if suricata.get("run"):
+        rules_file = suricata["run"]["rules"]
+        return f"`{rules_file['name']}` (SHA-256 `{rules_file['sha256'][:12]}`)"
+    return "–"
 
 
 def audit_section(audit: dict, path: Path) -> list[str]:

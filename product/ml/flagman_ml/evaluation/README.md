@@ -18,7 +18,9 @@ false-alarm rates a home network can bear, with the uncertainty shown.
    its classes that the models never trained on count as unseen.
 5. Each run is one JSON file in `results/evaluation/<plan>/runs/`; the
    **summary** (`summary.json`) gives the mean ± standard deviation over
-   runs, the paired tests, and what happened to each class left out.
+   runs, the paired tests, the mean share of each attack class that raised
+   an alert (Flagman and Suricata), and what happened to each class left
+   out.
 
 ## What a run measures
 
@@ -28,13 +30,14 @@ left out, except for alerts per day):
 | Metric | What it says |
 |---|---|
 | `budget` | false alarms on normal flows against the budget α, with an exact interval; each score against α/2 |
-| `rules` | false alarms and detection of three ways of deciding: Flagman's two scores, the classifier alone at α, the anomaly score alone at α; McNemar tests against the two scores |
+| `rules` | false alarms and detection of three ways of deciding: Flagman's two scores, the classifier alone at α, the anomaly score alone at α; McNemar tests against the two scores. A fourth, `suricata`, when every test file has a Suricata file: a flow holding at least one Suricata alert ([`suricata/`](../suricata/README.md)) |
 | `at_fpr` | detection at 0.1%, 0.5% and 1% false alarms (one point of the ROC curve of each score, and of the two-score rule), and whether there were enough normal flows to measure it |
 | `precision` | the share of alerts that would be real attacks if 1 flow in 1,000 (or in 100) were an attack (Bayes' rule) |
 | `f1` | F1 of each class of the test flows and their mean (macro-F1); `unknown_suspicious` counts as wrong |
 | `by_class` | for each attack class: the share that raised an alert, the share named right, and every decision |
 | `calibration` | ECE before and after temperature scaling (15 equal-width bins, as Guo et al. 2017), with each bin |
 | `alerts_per_day` | alerts per day of capture, per test file, counting every flow |
+| `suricata` | with Suricata files: Suricata's precision at the base rates, the share of each attack class it raised an alert on, and its alerts per day (`null` without them) |
 
 ## Files
 

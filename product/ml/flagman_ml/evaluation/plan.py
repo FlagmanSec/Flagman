@@ -27,6 +27,10 @@ Example (``plans/README.md`` has more)::
 - **Leave-one-attack-type-out**: with ``leave_one_attack_out = true``,
   every fold is run again once per attack class of its training side,
   without that class (first seed only, to bound the run time).
+- **Suricata**: a dataset may list Suricata files
+  (``suricata = ["results/suricata/day3.parquet"]``, written by
+  ``python -m flagman_ml.suricata match``). A fold whose test files all
+  have one scores Suricata as a fourth way of deciding.
 """
 
 from __future__ import annotations
@@ -45,6 +49,7 @@ class Dataset:
     name: str
     labels: Path
     flows: tuple[Path, ...]
+    suricata: tuple[Path, ...] = ()  # Suricata files (flagman_ml.suricata match)
 
 
 @dataclass(frozen=True)
@@ -78,7 +83,8 @@ def load_plan(path: str | Path) -> Plan:
     with open(path, "rb") as file:
         raw = tomllib.load(file)
     try:
-        datasets = {name: Dataset(name, Path(item["labels"]), tuple(map(Path, item["flows"])))
+        datasets = {name: Dataset(name, Path(item["labels"]), tuple(map(Path, item["flows"])),
+                                  tuple(map(Path, item.get("suricata", []))))
                     for name, item in raw["datasets"].items()}
         folds = tuple(Fold(item["name"], tuple(item["train"]), tuple(item["calibration"]),
                            tuple(item["test"])) for item in raw["folds"])

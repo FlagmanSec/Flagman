@@ -18,7 +18,7 @@ Python 3.13, from this folder:
 python3.13 -m venv .venv
 . .venv/bin/activate
 python -m pip install -r requirements.txt   # exact versions, see the file
-python -m pytest                             # about 180 tests, about 10 seconds
+python -m pytest                             # about 200 tests, about 10 seconds
 ```
 
 Run every command from this folder (`product/ml`): the code is not
@@ -84,17 +84,26 @@ three short recordings say nothing about how well Flagman detects.
 ## From decisions to numbers
 
 ```bash
-# 6. Evaluate: train and test per fold and seed, as a plan says (plans/)
+# 6. Optional: Suricata on the same test captures, matched to Flagman's flows
+python -m flagman_ml.suricata run --capture captures/day4.pcap \
+    --rules /var/lib/suricata/rules/suricata.rules --out results/suricata/day4
+python -m flagman_ml.suricata match --eve results/suricata/day4/eve.json \
+    --out results/suricata/day4.parquet flows/day4.parquet
+
+# 7. Evaluate: train and test per fold and seed, as a plan says (plans/)
 python -m flagman_ml.evaluation --plan plans/my-plan.toml
 
-# 7. The report, written only from the results JSON files
+# 8. The report, written only from the results JSON files
 python -m flagman_ml.reports --evaluation results/evaluation/my-plan \
     --audit results/audit/my-data.json --out results/reports/my-plan.md
 ```
 
 The three lab files cannot make a fold (training, calibration and test
 files, each with normal traffic), so the evaluation's tests run a plan on
-made-up days written as feature files: again a pipeline check.
+made-up days written as feature files: again a pipeline check. The
+Suricata tests read alerts that Suricata 7.0.3 really wrote for the lab
+captures, with two local rules instead of ET Open
+([`fixtures/README.md`](fixtures/README.md)).
 
 ## Reading order
 
@@ -110,8 +119,10 @@ made-up days written as feature files: again a pipeline check.
    false-alarm budget and the drift monitor.
 7. [`flagman_ml/evaluation/`](flagman_ml/evaluation/README.md) and
    [`plans/`](plans/README.md): measuring on whole files never seen.
-8. [`flagman_ml/reports/`](flagman_ml/reports/README.md): reports from
+8. [`flagman_ml/suricata/`](flagman_ml/suricata/README.md): Suricata on the
+   same captures, scored the same way.
+9. [`flagman_ml/reports/`](flagman_ml/reports/README.md): reports from
    results files only.
 
-The Suricata comparison, the model export and the runbook come next: see
+The model export and the runbook come next: see
 [the handoff](../docs/changes/phase-3-toolkit.md).
