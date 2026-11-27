@@ -51,3 +51,11 @@ Phase 1: Linux Pro. Details and checks: [docs/changes/phase-1-linux-pro.md](docs
 - The documents no longer present the normal capture (500 packets) as proof
   that there are no false alarms. The home test gains a week of normal use,
   which will give the real false alarm rate.
+
+### Fixed
+
+- The install guides no longer tell Ubuntu users to install `nodejs` with
+  apt: Ubuntu 24.04 ships Node.js 18, too old for the dashboard (it needs
+  20.19 or newer). They now use the NodeSource repository. The repository's
+  main README now describes Flagman and how to install it; the CS395
+  research README moved to `RESEARCH.md`.
