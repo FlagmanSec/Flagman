@@ -1,0 +1,41 @@
+# CIC-IDS2017 with the corrected labels of Engelen, Rimmer and Joosen
+# (2021). Facts and links: product/ml/data/README.md.
+#
+# DRAFT. The page that offers the corrected files could not be read from
+# here (2026-11-27), so their file names, column names and date style are
+# not verified. Before the first run:
+#   1. list the downloaded file names in ground_truth;
+#   2. set time_format to the style of the Timestamp column, for example
+#      "%d/%m/%Y %H:%M:%S" for 04/07/2017 09:20:01 (the cic_flows reader
+#      refuses to guess, because day and month can be swapped);
+#   3. find the time offset with `python -m flagman_ml.labels offsets`
+#      (the dataset page does not state the time zone).
+dataset = "cic-ids2017"
+source = "https://www.unb.ca/cic/datasets/ids-2017.html"
+format = "cic_flows"
+ground_truth = []
+# The CSVs list every flow, benign ones too: a flow that matches no record
+# is not described by the dataset, so it is left out and counted.
+default_label = "unlabelled"
+time_zone = "UTC"
+time_offset_ms = 0
+# Timestamps may be rounded to the second or the minute.
+time_tolerance_ms = 60000
+notes = """Flows labelled as attempted (Engelen et al.) are left out until the team decides \
+how to count them. Web brute force is password guessing on a login form, so it maps to \
+brute_force; cross-site scripting and SQL injection map to web_attack."""
+
+# The label names are matched loosely (any case) because the exact spelling
+# in the corrected files is not verified. An unknown label still stops the run.
+[patterns]
+"(?i)attempted" = "unlabelled"
+"(?i)^benign$" = "normal"
+"(?i)patator" = "brute_force"
+"(?i)^ddos" = "ddos"
+"(?i)^dos" = "dos"
+"(?i)heartbleed" = "exploit"
+"(?i)^web attack.*brute" = "brute_force"
+"(?i)^web attack" = "web_attack"
+"(?i)infiltration" = "infiltration"
+"(?i)^bot" = "botnet"
+"(?i)portscan" = "scan"

@@ -152,6 +152,30 @@ It exists only in builds with flagmand's `parquet` feature, off by default
 The same capture always gives the same bytes: packet timestamps drive
 every timeout, and the flow table breaks ties by flow key.
 
+### 7. Labelled data (`product/ml`, Python, phase 3)
+
+The Python side reads feature files and never computes a feature. Its
+first job is labelling: each flow takes the class of the dataset
+ground-truth record that describes the same conversation (same ends, ports
+where given, protocol where given) at an overlapping time.
+
+```text
+flows.parquet ──> flows/read.py: table + schema from the footer
+                      │
+ground truth ───> labels/formats.py: one table of records (UTC milliseconds)
+mapping .toml ──> labels/mapping.py: dataset labels -> Flagman classes
+                      │
+                      └─> labels/match.py + label.py: one label per flow
+                            └─> labels.parquet (source, row, label, ...;
+                                checksums of every input in the footer)
+```
+
+Labels join back to flows by `(source, row)`, and only if the feature
+file's checksum is the one recorded. Dataset files come from
+`flagman_ml/datasets` (size and SHA-256 checked). Models, evaluation and
+reports build on this in the next pull requests
+([handoff](changes/phase-3-toolkit.md)).
+
 ## Threads and shutdown
 
 | Thread | Job |

@@ -1,0 +1,18 @@
+# The Flagman ML pipeline (phase 3). It is not installed as a package:
+# run every command from this folder (product/ml), for example
+#   python -m pytest
+#   python -m flagman_ml.labels label --help
+[project]
+name = "flagman-ml"
+version = "0.1.0"
+description = "Labels, models and evaluation for Flagman, on the feature files that flagmand extract writes"
+requires-python = ">=3.13"
+
+[tool.pytest.ini_options]
+# Tests sit next to the code they test, in files ending in _test.py.
+pythonpath = ["."]
+testpaths = ["flagman_ml"]
+python_files = ["*_test.py"]
+addopts = "-q --strict-markers"
+# A warning is a failure: fix it or say why it is accepted.
+filterwarnings = ["error"]

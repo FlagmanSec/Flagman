@@ -33,6 +33,20 @@ starts. Details: [docs/changes/phase-3-toolkit.md](docs/changes/phase-3-toolkit.
 - The phase 2 plan describes the live/replay parity test (2.9), and a test
   pins the one known difference (a flow silent past its timeout in an
   otherwise silent capture).
+- `product/ml`, the Python pipeline (Python 3.13, every package pinned in
+  `requirements.txt`): reads feature files with the schema from their
+  footer; labels each flow from a dataset's ground truth by its two ends,
+  ports, protocol and time, through a mapping file per dataset (the lab,
+  UNSW-NB15, CTU-13, and a draft for CIC-IDS2017); finds the time offset of
+  a ground truth written in an unstated time zone; writes labels files that
+  record the checksum of every input.
+- `python -m flagman_ml.datasets`: downloads that resume, check size and
+  SHA-256, refuse 20 GB or more without a clear yes, and never fetch a
+  program; manifests for CTU-13 (all 13 scenarios), UNSW-NB15, CIC-IDS2017
+  and MAWI; `ml/data/README.md` with each dataset's verified facts, terms
+  and citations, and what could not be verified.
+- CI: a Python job (79 tests on the lab files, no download), and a check
+  that the Python test files match a fresh extraction of the lab captures.
 
 ### Changed (phase 3 toolkit)
 

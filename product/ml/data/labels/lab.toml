@@ -1,0 +1,24 @@
+# Our own lab captures (product/core/testdata/pcap): the ground truth is
+# fixtures/lab-ground-truth.csv, one row per step of the recording
+# scripts. Times were read from the captures, because the scripts did not
+# log them (see fixtures/README.md).
+dataset = "lab"
+source = "https://github.com/FlagmanSec/Flagman/tree/main/product/core/testdata/pcap"
+format = "lab_csv"
+ground_truth = ["lab-ground-truth.csv"]
+# Every flow outside an attack step is ordinary traffic: the normal-traffic
+# capture has no attack at all.
+default_label = "normal"
+time_zone = "UTC"
+time_offset_ms = 0
+# The windows come from the captures themselves, so no tolerance is needed.
+# Steps of the SSH capture are only 7 to 9 ms apart: a tolerance of a second
+# would make neighbouring steps compete for the same connections.
+time_tolerance_ms = 0
+notes = "Steps 3 to 5 of the SSH capture are logins with a key and connections to a stopped server: what a legitimate user does, so they are labelled normal."
+
+[classes]
+port_scan = "scan"
+ssh_password_guessing = "brute_force"
+ssh_key_login = "normal"
+ssh_refused = "normal"

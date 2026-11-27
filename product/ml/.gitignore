@@ -1,0 +1,8 @@
+# Outputs and downloads never go into git: results are rebuilt from the
+# commands in README.md, and datasets are downloaded again.
+results/
+data/downloads/
+.venv/
+__pycache__/
+.pytest_cache/
+*.part

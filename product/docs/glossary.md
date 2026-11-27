@@ -84,6 +84,15 @@ Sorted by theme, then alphabetically.
 | **Row group** | Parquet's unit of storage: a block of rows (65,536 in Flagman's files) written together. |
 | **Cargo feature** | An optional part of a Rust program, chosen when building it. `flagmand extract` needs `--features parquet`; the normal build leaves it out. |
 | **Byte-identical (deterministic)** | Running the same program twice on the same input gives exactly the same file, byte for byte. Flagman's extraction is, so two evaluation runs can be compared. |
+| **Ground truth** | A dataset's own record of what happened: which traffic was an attack, when, between which machines. Labels come from it. |
+| **Labelling** | Giving each flow a class (normal, scan, brute_force, ...) by matching it with the ground truth: same two ends, same ports and protocol where given, overlapping times. |
+| **Mapping file** | A small TOML file per dataset (`ml/data/labels/`) that says how to read its ground truth and which of its labels goes to which Flagman class. |
+| **Default label** | The class of a flow that no ground-truth record matches: `normal` when the dataset lists only attacks, `unlabelled` when it lists every flow. |
+| **Background, unlabelled** | Two classes that never train or score a model: traffic of unknown nature, and flows the ground truth does not describe. They are kept and counted. |
+| **Time offset, tolerance** | The offset moves every ground-truth time (for a dataset written in an unstated local time zone); the tolerance widens each record's window on both sides. |
+| **Conflict (labelling)** | A flow that matches several records leading to different classes. It still gets the most specific record's class, and is marked so it can be left out. |
+| **Manifest** | A TOML file per dataset (`ml/data/manifests/`) listing the files to download, with their size and SHA-256 once recorded. |
+| **SHA-256 checksum** | A 64-character fingerprint of a file's exact bytes. Downloads are checked against it, and labels record the checksum of the feature files they describe. |
 | **Parity test** | A check that features computed live and features extracted from a recording of the same traffic are equal. Described in the phase 2 plan (2.9), not built yet. |
 
 ## Product names
